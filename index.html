@@ -635,7 +635,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
     <p class="note" id="gpuInfo">Placa de vídeo: verificando…</p>
     <p class="note">Atalhos: ← → navegam · espaço liga a aula · Esc fecha a prévia. Botão direito desenha setas.</p>
     <details class="diag" id="diag"><summary>Diagnóstico</summary><div class="diagbar"><button type="button" id="diagCopy">Copiar</button><span id="diagMsg"></span></div><pre id="diagLog"></pre></details>
-    <p class="note credit">v<span id="ver">6.4</span> · Stockfish 18/19 · tabuleiro chessground (lichess) · voz Kokoro-82M · sons do lichess · todos GPL/AGPL/Apache/MIT</p>
+    <p class="note credit">v<span id="ver">6.5</span> · Stockfish 18/19 · tabuleiro chessground (lichess) · voz Kokoro-82M · sons do lichess · todos GPL/AGPL/Apache/MIT</p>
   </section>
 
   <div class="main">
@@ -710,7 +710,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
 <script type="module">
 import { Chess } from "./chess.js";
 import { Chessground } from "./chessground.min.js";
-const VERSION = "v6.4";
+const VERSION = "v6.5";
 console.log(`Professor de Xadrez ${VERSION} iniciado`);
 
 const $ = id => document.getElementById(id);
@@ -1308,23 +1308,23 @@ function theoryNotes(i){
   if (S.book?.[i+1]){
     const [eco, name] = S.book[i+1];
     const prevName = S.book[i]?.[1];
-    if (!prevName || prevName !== name) out.push({ p: 1, t: `Isso é teoria: ${name} (${eco}).` });
-    else out.push({ p: 6, t: `Ainda dentro da teoria de ${name}.` });
-  } else if (S.lastBook && i === S.lastBook) out.push({ p: 2, t: `Aqui a partida sai da teoria catalogada da abertura${S.opening ? " " + S.opening[1] : ""}. Daqui em diante valem os princípios.` });
+    if (!prevName || prevName !== name) out.push({ p: 1, t: (S.seenNotes?.size ? `Agora a abertura vira ${name} (${eco}).` : `Começamos com a ${name} (${eco}).`) });
+  } else if (S.lastBook && i === S.lastBook) out.push({ p: 2, t: `Fim da teoria conhecida: daqui em diante é com vocês.` });
   // princípios de abertura
   if (phase === "abertura" || ply <= 20){
-    if (m.flags.includes("k") || m.flags.includes("q")) out.push({ p: 2, t: "Roque cedo é princípio básico: rei seguro e as torres passam a se conectar." });
+    if (m.flags.includes("k") || m.flags.includes("q")) out.push({ p: 2, t: mine ? "Roque: rei em segurança e as torres começam a se conectar." : "Ele também roca e protege o rei." });
     else if (m.piece === "k") out.push({ neg: true, p: 2, t: "Na abertura o rei deve ficar protegido; andar com ele perde o roque e o deixa exposto." });
     if (m.piece === "q" && ply <= 10 && !m.captured) out.push({ neg: true, p: 3, t: "Dama cedo demais vira alvo: o adversário desenvolve peças atacando ela e ganha tempo." });
     if (m.piece === "n" && /^[ah]/.test(m.to)) out.push({ neg: true, p: 3, t: "Cavalo na borda controla metade das casas. A regra é: cavalo no aro, desgraça certa." });
     if ((m.piece === "n" || m.piece === "b") && (m.from[1] === "1" || m.from[1] === "8") && !m.captured){
       const back = me === "w" ? "1" : "8";
       let left = 0; for (const row of g1.board()) for (const q of row) if (q && q.color === me && (q.type === "n" || q.type === "b") && q.square[1] === back) left++;
-      out.push({ p: 4, t: left ? `Desenvolvimento: mais uma peça menor em jogo, faltam ${left}. O objetivo é tirar cavalos e bispos antes de atacar.` : "Desenvolvimento completo das peças menores. Agora é rocar e ligar as torres." });
+      if (!left) out.push({ p: 3, t: mine ? "Desenvolvimento completo: todos os cavalos e bispos em jogo. Agora é rocar e ligar as torres." : "Ele terminou de desenvolver cavalos e bispos." });
+      else if (mine) out.push({ p: 5, t: `Desenvolvimento: mais uma peça em jogo, faltam ${left}. Tire cavalos e bispos antes de atacar.` });
     }
     if ((m.piece === "n" || m.piece === "b") && m.from[1] !== (me === "w" ? "1" : "8") && ply <= 16 && !m.captured && !g0.attackers(m.from, opp).length)
       out.push({ neg: true, p: 3, t: "Mover a mesma peça duas vezes na abertura sem motivo atrasa o desenvolvimento." });
-    if (m.piece === "p" && ["e4","d4","e5","d5"].includes(m.to)) out.push({ p: 4, t: "Peão no centro: controla casas centrais e abre linhas para dama e bispos." });
+    if (mine && m.piece === "p" && ["e4","d4","e5","d5"].includes(m.to) && ply <= 10) out.push({ p: 4, t: "Peão no centro: controla casas centrais e abre linhas para dama e bispos." });
     else if (m.piece === "p" && ply <= 12 && /^[abgh]/.test(m.to) && !m.captured) out.push({ neg: true, p: 5, t: "Lance de peão na ala no começo da partida não ajuda o desenvolvimento nem o centro." });
   }
   // estrutura de peões (antes x depois, para os dois lados)
@@ -1341,7 +1341,7 @@ function theoryNotes(i){
   if (m.piece === "r"){
     const pawnsOn = col => { let own = 0, their = 0; for (const row of g1.board()) for (const q of row) if (q && q.type === "p" && q.square[0] === col) (q.color === me ? own++ : their++); return [own, their]; };
     const [own, their] = pawnsOn(m.to[0]);
-    if (!own && !their) out.push({ p: 3, t: "Torre em coluna aberta: é onde a torre rende mais, pressionando até a última fileira." });
+    if (!own && !their && !m.captured) out.push({ p: 3, t: "Torre em coluna aberta: é onde a torre rende mais, pressionando até a última fileira." });
     else if (!own) out.push({ p: 4, t: "Torre em coluna semiaberta: pressiona o peão do adversário nessa coluna." });
     if (ply <= 30 && ((m.from === "a1" || m.from === "h1") && me === "w" || (m.from === "a8" || m.from === "h8") && me === "b") && g0.getCastlingRights?.(me)?.[m.from[0] === "a" ? "q" : "k"])
       out.push({ neg: true, p: 3, t: "Mexer essa torre antes do roque tira o direito de rocar desse lado." });
@@ -1360,9 +1360,8 @@ function theoryNotes(i){
   // trocas conforme o material
   if (m.captured && i > 0 && S.plies[i-1].captured && S.plies[i-1].to === m.to){
     const sg = me === "w" ? 1 : -1, e = sg * S.evals[i+1];
-    if (e > 200) out.push({ p: 5, t: "Quem está à frente em material deve trocar peças: simplifica o caminho para a vitória." });
-    else if (e < -200) out.push({ p: 5, t: "Quem está atrás em material normalmente evita trocas, porque cada troca aproxima o final perdido." });
-    else out.push({ p: 6, t: "Troca de peças equilibrada." });
+    if (e > 200) out.push({ p: 4, t: mine ? "Você está na frente no material, então trocar peças é ótimo: simplifica o caminho para a vitória." : "Ele está na frente no material e aproveita para trocar peças, simplificando o jogo." });
+    else if (e < -200) out.push({ neg: true, p: 4, t: mine ? "Atrás no material, trocar peças costuma piorar: cada troca aproxima um final perdido." : "Ele está atrás no material e mesmo assim troca peças, o que facilita a sua vida." });
   }
   // atividade da peça movida
   if (m.piece !== "p" && m.piece !== "k" && !m.captured){
@@ -1374,7 +1373,7 @@ function theoryNotes(i){
     }
   }
   // final: rei ativo
-  if (phase === "final" && m.piece === "k"){
+  if (phase === "final" && m.piece === "k" && !m.captured && !new Chess(fenB).inCheck()){
     const center = sq => Math.abs(sq.charCodeAt(0) - 100.5) + Math.abs(+sq[1] - 4.5);
     if (center(m.to) < center(m.from)) out.push({ p: 3, t: "No final o rei vira peça de ataque: centralizar o rei é teoria básica de finais." });
   }
@@ -1391,7 +1390,13 @@ function phasePrinciple(i){
   return L[i % L.length];
 }
 
-/* retorna "" quando o lance não tem nada que valha comentário */
+/* variedade: cada tipo de frase tem várias versões, usadas em rodízio (nunca a mesma duas vezes seguidas) */
+function pick(cat, arr){ const vc = (S.vc ||= {}); const k = vc[cat] = (vc[cat] ?? -1) + 1; return arr[k % arr.length]; }
+/* nota de teoria só uma vez por partida: "torre na coluna aberta" 5 vezes cansa */
+const noteKey = t => t.replace(/\d+/g, "#").split(/[:.]/)[0].slice(0, 40);
+function freshNotes(notes){ const seen = (S.seenNotes ||= new Set()); return notes.filter(n => !seen.has(noteKey(n.t))); }
+function useNote(n){ (S.seenNotes ||= new Set()).add(noteKey(n.t)); return n.t; }
+/* retorna "" quando o lance não tem nada que valha comentário (a aula passa por ele sem falar) */
 function teacherText(i){
   const m = S.plies[i], mover = m.color, you = S.side, mine = mover === you;
   const c = S.cls[i];
@@ -1423,12 +1428,13 @@ function teacherText(i){
     }
     if (c.cls === "great"){
       const sec = c.second ? pvSans(fenB, [c.second], 1)[0] : null;
-      out.push(`Ótimo lance: era o único bom aqui${myIdeas.length ? ". Ele " + idea3(myIdeas) : ""}.`);
-      if (sec) out.push(`A segunda opção, ${T(sec)}, já deixava a posição bem pior.`);
+      const why = myIdeas.length ? " Ele " + idea3(myIdeas) + "." : "";
+      out.push(pick("gr", [`Ótimo lance: era o único bom aqui.${why}`, `Achou o lance único!${why}`, `Esse precisava achar, e você achou.${why}`, `Muito preciso: qualquer outro lance piorava tudo.${why}`]));
+      if (sec && out.length && pick("gr2", [1, 0]) ) out.push(`A segunda opção, ${T(sec)}, já deixava a posição bem pior.`);
       return out.join(" ");
     }
     if (c.cls === "blunder" || c.cls === "mistake" || c.cls === "miss"){
-      const head = c.cls === "blunder" ? "Capivarada." : c.cls === "miss" ? "Chance perdida." : "Erro.";
+      const head = c.cls === "blunder" ? pick("hb", ["Capivarada.", "Capivarada!", "Ih, capivarada."]) : c.cls === "miss" ? pick("hm", ["Chance perdida.", "Passou uma chance aqui.", "Essa era a hora e passou."]) : pick("he", ["Erro.", "Aqui escorregou.", "Esse lance foi um erro."]);
       let fail = "";
       if (ignored) fail = `esqueceu a ameaça ${T(oppThreatBefore.san)}${oppThreatBefore.gain >= 1 ? ", que " + gainPhrase(oppThreatBefore.gain).replace("ganhando", "ganha") : ""}`;
       else if (hang) fail = `deixou ${ART[hang.piece] === "a" ? "sua" : "seu"} ${PN[hang.piece]} em ${hang.sq} ${hang.undefended ? "sem defesa" : "mal defendid" + (ART[hang.piece]==="a"?"a":"o")} para ${T(refSan)}`;
@@ -1441,7 +1447,7 @@ function teacherText(i){
         out.push(`${head} ${bestSentence(fenB, bestU, pvB, mover, i+1, "Você deixou passar", S.evals[i])}`);
       }
     } else if (c.cls === "inacc"){
-      if (bestU) out.push(`Imprecisão. ${bestSentence(fenB, bestU, pvB, mover, i+1, "Melhor era", S.evals[i])}`);
+      if (bestU) out.push(`${pick("hi", ["Imprecisão.", "Dava para fazer melhor.", "Não foi o mais preciso."])} ${bestSentence(fenB, bestU, pvB, mover, i+1, pick("hi2", ["Melhor era", "O mais forte era", "Tinha"]), S.evals[i])}`);
       if (ignored) out.push(`Cuidado com a ameaça ${T(oppThreatBefore.san)}.`);
     } else {
       // lance bom: só comenta o que ensina algo
@@ -1452,20 +1458,22 @@ function teacherText(i){
       else if (m.captured && VAL[m.captured] >= 3 && netCapture >= 3){
         const wasLoose = !new Chess(fenB).attackers(m.to, other(mover)).length;
         const fromTactic = i >= 2 && (S.threat?.[i-2]?.uci === (m.from + m.to) || (S.cls[i-2] && S.cls[i-2].cls === "best" && /[+]/.test(S.plies[i-2].san)));
-        if (fromTactic) out.push(`A tática funcionou: você ganha ${ART[m.captured]} ${PN[m.captured]}.`);
-        else if (wasLoose) out.push(`Boa, ${ART[m.captured]} ${PN[m.captured]} estava ${ART[m.captured]==="a"?"solta":"solto"} e você pegou.`);
-        else out.push(`Boa: você ganha ${ART[m.captured]} ${PN[m.captured]}.`);
+        const pc = `${ART[m.captured]} ${PN[m.captured]}`, solt = ART[m.captured] === "a" ? "solta" : "solto";
+        if (fromTactic) out.push(pick("ct", [`A tática funcionou: você ganha ${pc}.`, `E a ideia se completa: ${pc} é sua.`]));
+        else if (wasLoose) out.push(pick("cl", [`Boa, ${pc} estava ${solt} e você pegou.`, `Isso! ${pc[0].toUpperCase() + pc.slice(1)} ficou ${solt} e você não perdoou.`, `Peça de graça: ${pc} estava ${solt}.`]));
+        else out.push(pick("cg", [`Boa: você ganha ${pc}.`, `Material no bolso: ${pc}.`]));
       }
-      if (playedFork) out.push(`Esse lance faz ${playedFork}.`);
-      else if (myThreat) out.push(`${out.length ? "E" : "Esse lance"} cria a ameaça ${threatPhrase(i)}.`);
-      if (!out.length && oppThreatBefore && !ignored && c.cls !== "forced" && !m.captured) out.push(`Defendeu bem a ameaça ${T(oppThreatBefore.san)}.`);
-      if (c.hadMate && c.stillMate && !out.length) out.push("Continua no caminho do mate.");
+      if (playedFork) out.push(pick("pf", [`${pick("ok", ["Boa!", "Isso!", "Muito bem."])} Esse lance faz ${playedFork}.`, `Olha o ${playedFork}!`]));
+      else if (myThreat) out.push(out.length ? `E ainda cria a ameaça ${threatPhrase(i)}.` : pick("mt", [`${pick("ok", ["Boa!", "Isso!", "Muito bem."])} Agora você ameaça ${threatPhrase(i)}.`, `Esse lance cria a ameaça ${threatPhrase(i)}.`, `Repare: fica no ar ${threatPhrase(i)}.`]));
+      if (!out.length && oppThreatBefore && !ignored && c.cls !== "forced" && !m.captured) out.push(pick("df", [`Defendeu bem a ameaça ${T(oppThreatBefore.san)}.`, `Bem visto: você neutralizou ${T(oppThreatBefore.san)}.`, `Certo, isso segura a ameaça ${T(oppThreatBefore.san)}.`]));
+      if (c.hadMate && c.stillMate && !out.length){ const e = (mover === "w" ? 1 : -1) * S.evals[i+1]; const n = isMate(e) && e > 0 ? mateIn(e) : 0;
+        out.push(n ? pick("mt2", [`Isso, continua no caminho: mate em ${n}.`, `Certo. Agora é mate em ${n}.`, `Sem escapatória: mate em ${n}.`]) : "Continua no caminho do mate."); }
     }
   } else {
     if (c.cls === "brilliant" && c.sac){
       out.push(`Lance brilhante do adversário: ele oferece ${ART[c.sac.piece]} ${PN[c.sac.piece]} em ${c.sac.sq}. Cuidado antes de capturar.`);
     } else if (c.cls === "great"){
-      out.push("Ótimo lance do adversário: era o único bom na posição.");
+      out.push(pick("ogr", ["Ótimo lance do adversário: era o único bom na posição.", "Ele achou a única defesa.", "Boa defesa dele: era o único lance."]));
     } else if (c.cls === "miss" && bestU){
       out.push(`Sorte sua: ${bestSentence(fenB, bestU, pvB, mover, i+1, "ele deixou passar", S.evals[i])}`);
     } else if (c.cls === "blunder" || c.cls === "mistake"){
@@ -1476,30 +1484,30 @@ function teacherText(i){
       const why = refFork ? `, ${refFork}` : gMe >= 1 ? `, ${gainPhrase(gMe)}` : (isMate(eY) && eY > 0) ? `, com mate forçado em ${mateIn(eY)}` : ", e sua posição fica muito melhor";
       const oIdea = ideaInf(intentOf(fenB, m.from + m.to + (m.promotion || ""), i+1));
       const chance = refPv[0] ? bestSentence(fenA, refPv[0], refPv, you, i+2, "Agora você tem", S.evals[i+1]) : "";
-      out.push(`${oIdea ? `Ele quis ${oIdea}, mas errou.` : "Ele errou."} ${chance}`);
+      out.push(`${pick("oe", [oIdea ? `Ele quis ${oIdea}, mas errou.` : "Ele errou.", "Foi ele que escorregou.", oIdea ? `Ele tentou ${oIdea} e deu uma brecha.` : "Ele deu uma brecha."])} ${chance}`);
+    } else if (isMate(you === "w" ? S.evals[i+1] : -S.evals[i+1]) && (you === "w" ? S.evals[i+1] : -S.evals[i+1]) > 0 && mateIn(you === "w" ? S.evals[i+1] : -S.evals[i+1]) <= 3){
+      const n = mateIn(you === "w" ? S.evals[i+1] : -S.evals[i+1]);
+      out.push(pick("om", [`Não tem defesa: você tem mate em ${n}.`, `Tarde demais para ele: mate em ${n} na mesa.`]));
     } else if (myThreat){
-      out.push(`Atenção: ele ameaça ${threatPhrase(i)}.`);
-    } else if (m.san.includes("+")){
-      out.push("Xeque. Você é obrigado a responder.");
+      out.push(pick("ot", [`Atenção: ele ameaça ${threatPhrase(i)}.`, `Cuidado, a ameaça dele agora é ${threatPhrase(i)}.`, `Olho vivo: ele quer ${threatPhrase(i)}.`]));
     } else if (playedFork){
-      out.push(`Cuidado: ${playedFork}.`);
+      out.push(pick("of", [`Cuidado: ${playedFork}.`, `Ele armou um ${playedFork}.`]));
     }
 
   }
   // avaliação só quando muda de faixa
   const sg = you === "w" ? 1 : -1;
   // teoria: sempre há algo a ensinar, curto
-  const notes = theoryNotes(i);
+  const notes = freshNotes(theoryNotes(i));
   const words = () => out.join(" ").split(/\s+/).length;
   if (!out.length){
-    if (notes.length) out.push(notes[0].t);
-    if (notes[1] && notes[1].p <= 4 && words() < 28) out.push(notes[1].t);
-    if (!out.length) out.push(phasePrinciple(i));
+    // lance sem nada concreto: só fala se houver uma lição nova e relevante; senão a aula passa direto
+    if (notes.length && notes[0].p <= 4) out.push(useNote(notes[0]));
   } else if (!ERRS.includes(c.cls) && notes.length && notes[0].p <= 3 && words() < 30){
-    out.push(notes[0].t);
+    out.push(useNote(notes[0]));
   } else if (ERRS.includes(c.cls)){
     const warn = notes.find(x => x.neg);            // princípio que o erro quebrou
-    if (warn && words() < 38) out.push(warn.t);
+    if (warn && words() < 38) out.push(useNote(warn));
   }
   return out.join(" ");
 }
@@ -1514,10 +1522,17 @@ function introText(){
   const mine = S.cls.filter((c,i)=>S.plies[i].color===you);
   const cnt = k => mine.filter(c=>c.cls===k).length;
   const acc = Math.round(mine.reduce((a,c)=>a+c.acc,0)/Math.max(1,mine.length));
-  const op = S.opening ? ` A abertura foi ${S.opening[1]} (${S.opening[0]}), e a teoria catalogada vai até o lance ${Math.ceil(S.lastBook/2)}.` : "";
+  const op = S.opening ? ` A abertura foi ${S.opening[1]}.` : "";
   const pl = (n, a, b) => `${n} ${n === 1 ? a : b}`;
   const good = [cnt("brilliant") ? pl(cnt("brilliant"), "lance brilhante", "lances brilhantes") : "", cnt("great") ? pl(cnt("great"), "ótimo lance", "ótimos lances") : ""].filter(Boolean).join(" e ");
-  return `Vamos rever a sua partida de ${youName}.${op} ${res} Sua precisão foi de ${acc} por cento, com ${pl(cnt("blunder"), "capivarada", "capivaradas")}, ${pl(cnt("mistake"), "erro", "erros")}, ${pl(cnt("miss"), "chance perdida", "chances perdidas")} e ${pl(cnt("inacc"), "imprecisão", "imprecisões")}.${good ? ` Teve também ${good}.` : ""}`;
+  const bad = [cnt("blunder") ? pl(cnt("blunder"), "capivarada", "capivaradas") : "", cnt("mistake") ? pl(cnt("mistake"), "erro", "erros") : "", cnt("miss") ? pl(cnt("miss"), "chance perdida", "chances perdidas") : ""].filter(Boolean);
+  const badTxt = bad.length ? (bad.length > 1 ? bad.slice(0, -1).join(", ") + " e " + bad[bad.length - 1] : bad[0]) : "";
+  const tone = acc >= 90 ? "Partida muito sólida." : acc >= 80 ? "Boa partida no geral." : acc >= 65 ? "Partida com altos e baixos." : "Partida difícil, mas dá para aprender muito com ela.";
+  // a virada: o lance seu que mais derrubou a sua chance de vencer
+  let turn = null, worst = 0; const sgY = you === "w" ? 1 : -1;
+  S.plies.forEach((m, i) => { if (m.color !== you) return; const d = winPct(sgY * S.evals[i]) - winPct(sgY * S.evals[i+1]); if (d > worst){ worst = d; turn = i; } });
+  const turnTxt = turn !== null && worst >= 20 ? ` O momento que mais pesou foi o lance ${Math.floor(turn / 2) + 1}, ${T(S.plies[turn].san)}.` : "";
+  return [tone, `De ${youName}, você jogou com ${acc} por cento de precisão.`, op.trim(), res, badTxt ? `Teve ${badTxt}.` : "Sem erros graves.", good ? `E achou ${good}.` : "", turnTxt.trim()].filter(Boolean).join(" ");
 }
 
 /* ---------- árvore de lances (partida + variantes) ---------- */
@@ -2063,7 +2078,7 @@ const SAYQ = []; let SAYBUSY = false;
 function say(t){ if (!t) return; SAYQ.push(t); if (!SAYBUSY) sayNext(); }
 function sayNext(){ const t = SAYQ.shift(); if (!t){ SAYBUSY = false; return; } SAYBUSY = true; Voice.speak(toSpeech(t), () => { SAYBUSY = false; sayNext(); }); }
 
-const QUIET = "Lance tranquilo, nada de importante aqui.";
+const QUIET = "Lance normal, nada de especial aqui.";
 const rawText = i => (S.aiTexts && !S.useEngine?.has(i) && String(S.aiTexts[i] || "").trim()) ? S.aiTexts[i] : S.texts[i];   // vazio do Claude cai no comentário automático
 const isQuiet = i => !String(rawText(i) || "").trim();
 const currentText = i => isQuiet(i) ? QUIET : rawText(i);
@@ -2655,7 +2670,7 @@ function prepTexts(){
   const n = S.plies.length, order = [];
   for (let k = Math.max(0, S.cur - 1); k < n; k++) order.push(k);
   for (let k = 0; k < Math.max(0, S.cur - 1); k++) order.push(k);
-  const texts = order.map(k => toSpeech(currentText(k)));
+  const texts = order.filter(k => !isQuiet(k)).map(k => toSpeech(currentText(k)));   // lance normal não é falado: não gasta a voz com ele
   if (S.intro && S.cur === 0) texts.push(toSpeech(introNow()));   // o resumo por último: a aula começa pelos lances
   return texts;
 }
@@ -2805,6 +2820,7 @@ document.querySelectorAll(".rates button").forEach(b => b.onclick = () => { setR
 
 function speakCurrent(onEnd){
   if (!onMain()){ onEnd && onEnd(); return; }
+  if (S.cur > 0 && isQuiet(S.cur - 1)){ onEnd && onEnd(); return; }   // lance normal: nada a dizer, não repete "lance normal" em voz
   const i = S.cur - 1;
   if (i >= 0 && S.aiTexts && String(S.aiTexts[i] || "").trim() && !S.useEngine?.has(i) && VSEL.startsWith("n:") && Neural.state === "ready" && S.texts[i]){
     const first = t => neuralParts(toSpeech(t))[0];
@@ -2817,16 +2833,21 @@ function speakCurrent(onEnd){
   Voice.speak(toSpeech(txt), onEnd);
 }
 const isKey = i => isKeyMoment(i) || new Chess(S.fens[i+1]).isCheckmate();
+/* ritmo da aula: lance com algo a ensinar → o professor fala; lance normal → só mostra o lance
+   no tabuleiro (com som) e segue em ~0,9 s, como a revisão do chess.com passando rápido */
 function lessonStep(){
   if (!S.lesson) return;
-  speakCurrent(() => {
+  const next = () => {
     if (!S.lesson) return;
     let nx = S.cur + 1;
     const skip = k => ($("keyOnly").checked && !isKey(k)) || ($("skipQuiet").checked && isQuiet(k));
     while (nx <= S.plies.length && skip(nx-1)) nx++;
     if (nx > S.plies.length){ stopLesson(); return; }
     setTimeout(() => { if (!S.lesson) return; go(nx,false); lessonStep(); }, 300);
-  });
+  };
+  const i = S.cur - 1;
+  if (i >= 0 && onMain() && isQuiet(i)) { setTimeout(next, 600); return; }
+  speakCurrent(next);
 }
 function startLesson(){ if (!S.analysed || PLAY.on) return; if (!onMain()) goNode(branchMain(S.node), false);
   if (S.cur === 0) go(1, false);                     /* começa direto no 1º lance (o resumo longo atrasava o início) */
@@ -3368,6 +3389,7 @@ async function run(){
   await loadOpenings(); computeBook();
   S.cls = [];
   for (let i = 0; i < S.plies.length; i++) S.cls[i] = classify(i);
+  S.vc = {}; S.seenNotes = new Set();
   S.texts = S.plies.map((_,i)=>teacherText(i));
   S.intro = introText(); S.aiSummary = null;
   S.analysed = true; $("go").disabled = false; TEL.analysis = Math.round((performance.now() - tRun) / 1000); telMark();
