@@ -7,7 +7,7 @@
 const GPU = new URLSearchParams(self.location.search).get("gpu") === "1";
 importScripts(GPU ? "ort-gpu.min.js" : "ort.wasm.min.js", "piper_phonemize.js");
 const BASE = new URL("./", self.location.href).href;
-ort.env.wasm.numThreads = 1;
+ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.max(1, Math.min(8, +(new URLSearchParams(self.location.search).get("t") || 1))) : 1;   // vários fios só com isolamento (coi-sw.js)
 if (GPU) ort.env.wasm.wasmPaths = { mjs: BASE + "ort-gpu-glue.js", wasm: BASE + "ortgpu.wasm" };
 else ort.env.wasm.wasmPaths = BASE;
 

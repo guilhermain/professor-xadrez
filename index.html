@@ -2,11 +2,12 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
+<script src="coi-sw.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Professor de Xadrez</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+Symbols+2&display=swap">
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+Symbols+2&display=swap">
 <style>
 /* Layout v4: "revisão de partida" — tabuleiro azul/creme à esquerda com barras dos jogadores; painel escuro à direita com o professor (avatar + balão), ações, gráfico, lista de lances e navegação. Empilha no celular. */
 :root{
@@ -620,7 +621,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
     <p class="note" id="gpuInfo">Placa de vídeo: verificando…</p>
     <p class="note">Atalhos: ← → navegam · espaço liga a aula · Esc fecha a prévia. Botão direito desenha setas.</p>
     <details class="diag" id="diag"><summary>Diagnóstico</summary><div class="diagbar"><button type="button" id="diagCopy">Copiar</button><span id="diagMsg"></span></div><pre id="diagLog"></pre></details>
-    <p class="note credit">v<span id="ver">6.0</span> · Stockfish 18 · tabuleiro chessground (lichess) · voz Kokoro-82M / Piper · todos GPL/Apache/MIT</p>
+    <p class="note credit">v<span id="ver">6.1</span> · Stockfish 18/19 · tabuleiro chessground (lichess) · voz Kokoro-82M / Piper · todos GPL/Apache/MIT</p>
   </section>
 
   <div class="main">
@@ -695,7 +696,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
 <script type="module">
 import { Chess } from "./chess.js";
 import { Chessground } from "./chessground.min.js";
-const VERSION = "v6.0";
+const VERSION = "v6.1";
 console.log(`Professor de Xadrez ${VERSION} iniciado`);
 
 const $ = id => document.getElementById(id);
@@ -830,9 +831,10 @@ class Engine{
   }
   async init(ms){
     this.send("uci"); await this.waitFor("uciok", ms);
-    this.send("setoption name Hash value 32");
+    if (this.threads > 1) this.send("setoption name Threads value " + this.threads);
+    this.send("setoption name Hash value " + (this.threads > 1 ? 64 : 32));
     this.send("isready"); await this.waitFor("readyok", ms);
-    dlog(`motor ${this.file} pronto`);
+    dlog(`motor ${this.file} pronto (${this.threads || 1} fio${this.threads > 1 ? "s" : ""})`);
   }
   run(fn){ const p = (this.chain || Promise.resolve()).then(fn); this.chain = p.catch(() => {}); return p; }
   bestMove(fen, lv){ return this.run(() => this._bestMove(fen, lv)); }
@@ -879,15 +881,20 @@ async function preflight(){
   }catch(e){ dlog("worker de teste (blob): FALHOU → " + e.message); }
 }
 
+/* motores de apoio (análise ao vivo, adversário) ficam no 18 de 1 fio para não disputar núcleos com o principal */
+function sideFile(){ return /stockfish-19/.test(S.engine.file) ? "stockfish-18-lite-single.js" : S.engine.file; }
 async function startEngine(){
   const tries = [
     { file:"stockfish-18-lite-single.js", label:"Stockfish 18 (WASM)", ms:20000 },
     { file:"stockfish-18-asm.js", label:"Stockfish 18 (asm.js, modo compatível)", ms:60000 },
   ];
   if (!WASM_OK){ dlog("WASM bloqueado nesta página: indo direto para o asm.js"); tries.shift(); }
+  /* vários núcleos só compensa com muitos: em 2 núcleos o 19 com 2 fios (904 ms) perdeu do 18 de 1 fio (782 ms) */
+  const cores = navigator.hardwareConcurrency || 2;
+  if (WASM_OK && self.crossOriginIsolated && cores >= 8) tries.unshift({ file:"stockfish-19-lite.js", label:"Stockfish 19 (vários núcleos)", ms:20000, threads: Math.min(8, Math.floor(cores / 2)) });
   for (const t of tries){
     status(`Carregando o motor: ${t.label}…`, 3);
-    const e = new Engine(t.file);
+    const e = new Engine(t.file); e.threads = t.threads || 1;
     try{ await e.init(t.ms); e.label = t.label; return e; }
     catch(err){ dlog(`${t.label} falhou: ${err.message}`); e.kill("descartado"); }
   }
@@ -2119,7 +2126,7 @@ async function liveEnsure(){
   if (LIVE.eng || !S.engine) return LIVE.eng;
   if (LIVE.starting) return LIVE.starting;
   LIVE.starting = (async () => {
-    const e = new Engine(S.engine.file); await e.init(30000);
+    const e = new Engine(sideFile()); await e.init(30000);
     e.send("setoption name MultiPV value 3"); e.send("isready"); await e.waitFor("readyok", 30000);
     e.onInfo = line => liveInfo(line);
     const orig = e.onLine.bind(e);
@@ -2183,7 +2190,7 @@ function isInPlayLine(n){ return !!PLAY.nodes?.has(n); }
 async function botEnsure(){
   if (PLAY.bot) return PLAY.bot;
   if (PLAY.botP) return PLAY.botP;
-  PLAY.botP = (async () => { const e = new Engine(S.engine.file); await e.init(30000); e.send("setoption name Skill Level value 20"); PLAY.bot = e; return e; })();
+  PLAY.botP = (async () => { const e = new Engine(sideFile()); await e.init(30000); e.send("setoption name Skill Level value 20"); PLAY.bot = e; return e; })();
   PLAY.botP.catch(() => { PLAY.botP = null; });
   return PLAY.botP;
 }
@@ -2295,6 +2302,8 @@ function speechParts(text, stream){
    da aula espera no máximo a frase que já está sendo gerada. */
 const HW = navigator.hardwareConcurrency || 2, MEM = navigator.deviceMemory || 0;
 const POOL = Math.max(1, Math.min(HW >= 12 && (!MEM || MEM >= 8) ? 6 : 4, HW <= 2 ? HW : HW - 1, MEM && MEM <= 4 ? 2 : 6));
+/* com isolamento (coi-sw.js) cada cópia usa vários núcleos: a 1ª frase sai mais rápido. Medido em 2 núcleos: 1 fio rtf 2,88 → 2 fios rtf 2,17 */
+const NT = self.crossOriginIsolated ? Math.max(1, Math.min(4, Math.floor(HW / POOL), HW >= 4 ? 4 : 2)) : 1;
 /* uma frase por pedaço (o mesmo corte em qualquer comentário = reaproveita o áudio);
    só frases longas (>150) quebram na vírgula, e pedaços minúsculos grudam no anterior */
 function neuralParts(text){
@@ -2322,7 +2331,7 @@ const Neural = {
   nReady(){ return this.ws.filter(W => W.ready).length; },
   gpuState: "testando",
   spawn(gpu){
-    let w; try{ w = new Worker(gpu ? "tts-worker.js?gpu=1" : "tts-worker.js"); }catch(e){ return null; }
+    let w; try{ w = new Worker(gpu ? "tts-worker.js?gpu=1" : "tts-worker.js?t=" + NT); }catch(e){ return null; }
     const W = { w, ready: false, job: null, gpu: !!gpu };
     w.onmessage = e => this.onMsg(W, e.data);
     w.onerror = e => { e.preventDefault?.(); this.dropWorker(W, "worker: " + (e.message || "erro")); };
@@ -2345,7 +2354,7 @@ const Neural = {
       this.gpuState = "desligada (o modelo que roda na placa quebrava frases)";
       if (!this.spawn(false)) return this.fail("não consegui criar o worker");   // placa de vídeo desligada: o modelo limpo (q8) não roda bem nela
     });
-    dlog(`voz neural: carregando ${voice} (placa de vídeo se der · até ${POOL} cópias no processador · ${HW} núcleos${MEM ? " · " + MEM + " GB" : ""})`);
+    dlog(`voz neural: carregando ${voice} (até ${POOL} cópias × ${NT} fio${NT > 1 ? "s" : ""} no processador · ${HW} núcleos${MEM ? " · " + MEM + " GB" : ""})`);
     renderVoiceStatus();
   },
   rejectAll(){
@@ -2821,7 +2830,7 @@ let sampleFn = apiKeyGet() ? apiSample(apiKeyGet()) : null;
 function apiKeyUI(){
   const k = apiKeyGet();
   $("apiKey").value = k ? "••••••••" + k.slice(-4) : "";
-  $("apiMsg").textContent = k ? "Chave salva. O professor Claude está ligado." : "Sem chave: o app usa os comentários automáticos e não responde perguntas.";
+  $("apiMsg").textContent = k ? "Chave salva. O professor já pode responder às suas perguntas." : "Sem chave: o app usa os comentários automáticos e não responde perguntas.";
 }
 $("apiSave").onclick = async () => {
   const v = $("apiKey").value.trim();
