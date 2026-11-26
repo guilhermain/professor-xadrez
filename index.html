@@ -48,6 +48,18 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
 .err{color:var(--c-miss)}
 .chip{font-size:.75rem;font-weight:700;border-radius:99px;padding:2px 10px;background:var(--surface-2);color:var(--fg);font-variant-numeric:tabular-nums;white-space:nowrap}
+.games{background:var(--surface);border-radius:var(--r);padding:6px;display:grid;gap:2px;max-height:min(60vh,520px);overflow:auto}
+.games .gh{display:flex;justify-content:space-between;align-items:center;padding:6px 8px 8px;font-size:.85rem;color:var(--muted,#a8a6a2)}
+.games .gh b{color:var(--fg)}
+.games button.g{display:grid;grid-template-columns:14px minmax(0,1fr) auto auto;gap:10px;align-items:center;text-align:left;font-weight:500;background:transparent;box-shadow:none;padding:8px 10px;border-radius:6px}
+.games button.g:hover{background:var(--surface-2)}
+.games .pc{width:12px;height:12px;border-radius:3px;border:1px solid #6d6a63}
+.games .pc.w{background:#fff}.games .pc.b{background:#1c1c1c}
+.games .op{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.games .op small{color:#a8a6a2;font-weight:400}
+.games .rs{font-weight:700;font-size:.8rem;padding:2px 8px;border-radius:4px;color:#fff}
+.games .rs.win{background:#81b64c}.games .rs.loss{background:#ca3431}.games .rs.draw{background:#6d6a63}
+.games .dt{color:#a8a6a2;font-size:.8rem;white-space:nowrap}
 .settings{background:var(--surface);border-radius:var(--r);padding:12px 14px;display:grid;gap:10px;font-size:.85rem}
 .setgrid{display:flex;flex-wrap:wrap;gap:8px 14px}
 .setgrid label{display:grid;gap:3px;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
@@ -589,11 +601,13 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
     <h1><svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#81b64c"/><path d="M12 5.2a2.6 2.6 0 0 0-1.6 4.6c-1 .6-1.6 1.6-1.6 2.8h1.3l-1.6 4.2h7l-1.6-4.2h1.3c0-1.2-.6-2.2-1.6-2.8A2.6 2.6 0 0 0 12 5.2zM7.6 17.6h8.8v1.6H7.6z" fill="#fff"/></svg>Professor de Xadrez</h1>
     <form class="loader" id="loader">
       <label for="src" class="sr">Link ou PGN da partida</label>
-      <textarea id="src" rows="1" spellcheck="false" placeholder="Cole o link da partida do chess.com ou o PGN"></textarea>
+      <textarea id="src" rows="1" spellcheck="false" placeholder="Cole seu usuário do chess.com, o link da partida ou o PGN"></textarea>
       <button class="primary" id="go" type="submit">Analisar</button>
+      <button type="button" id="gamesBtn" hidden>Minhas partidas</button>
       <button type="button" class="icon" id="gearBtn" aria-label="Configurações" aria-expanded="false">⚙</button>
     </form>
   </header>
+  <section class="games" id="games" hidden></section>
   <div class="status" id="status"><span id="stxt">Carregando o motor…</span><span class="bar"><i id="sbar"></i></span><span class="sr" id="prepInfo" hidden></span></div>
 
   <section class="settings" id="settings" hidden>
@@ -621,7 +635,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
     <p class="note" id="gpuInfo">Placa de vídeo: verificando…</p>
     <p class="note">Atalhos: ← → navegam · espaço liga a aula · Esc fecha a prévia. Botão direito desenha setas.</p>
     <details class="diag" id="diag"><summary>Diagnóstico</summary><div class="diagbar"><button type="button" id="diagCopy">Copiar</button><span id="diagMsg"></span></div><pre id="diagLog"></pre></details>
-    <p class="note credit">v<span id="ver">6.3</span> · Stockfish 18/19 · tabuleiro chessground (lichess) · voz Kokoro-82M · sons do lichess · todos GPL/AGPL/Apache/MIT</p>
+    <p class="note credit">v<span id="ver">6.4</span> · Stockfish 18/19 · tabuleiro chessground (lichess) · voz Kokoro-82M · sons do lichess · todos GPL/AGPL/Apache/MIT</p>
   </section>
 
   <div class="main">
@@ -645,7 +659,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
         <div class="avatar" id="avatar" aria-hidden="true"><svg viewBox="0 0 64 64"><rect width="64" height="64" fill="#4a6b33"/><circle cx="32" cy="38" r="16" fill="#f1c9a5"/><path d="M16 40c1 9 7 15 16 15s15-6 16-15c-3 5-9 7-16 7s-13-2-16-7z" fill="#e8e4dc"/><path d="M25 45c4 2 10 2 14 0" stroke="#b07c5b" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="26" cy="36" r="4.6" fill="#fff" fill-opacity=".35" stroke="#2b2a27" stroke-width="2"/><circle cx="38" cy="36" r="4.6" fill="#fff" fill-opacity=".35" stroke="#2b2a27" stroke-width="2"/><path d="M30.6 36h2.8" stroke="#2b2a27" stroke-width="2"/><circle cx="26" cy="36.4" r="1.4" fill="#2b2a27"/><circle cx="38" cy="36.4" r="1.4" fill="#2b2a27"/><path d="M11 22l21-9 21 9-21 9z" fill="#1d1c1a"/><path d="M21 26v5.5c7 3.5 15 3.5 22 0V26l-11 4.7z" fill="#2b2a27"/><path d="M50 23.2v9.5" stroke="#f0c15c" stroke-width="2"/><circle cx="50" cy="34" r="2.2" fill="#f0c15c"/></svg></div>
         <div class="bubble" id="bubble" aria-live="polite">
           <div class="bhead"><span class="bicon" id="licon"></span><span class="btitle" id="lmv">Nenhuma partida</span><span class="evchip" id="lev"></span></div>
-          <div class="speech" id="ltext">Cole o link da partida acima e clique em Analisar.</div>
+          <div class="speech" id="ltext">Clique em <b>Minhas partidas</b> e escolha uma, ou cole o link da partida ou o PGN acima.</div>
           <span class="sr" id="lsrc"></span><span class="sr" id="speaking" hidden>● falando</span>
           <div class="actions" id="actions" hidden>
             <button type="button" id="btnExplain" title="Mostra no tabuleiro o que está por trás do lance">💡 <span id="ideaLbl">Mostrar ideia</span></button>
@@ -696,7 +710,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
 <script type="module">
 import { Chess } from "./chess.js";
 import { Chessground } from "./chessground.min.js";
-const VERSION = "v6.3";
+const VERSION = "v6.4";
 console.log(`Professor de Xadrez ${VERSION} iniciado`);
 
 const $ = id => document.getElementById(id);
@@ -747,6 +761,70 @@ let RETRY = null, EXPLAIN = null;   // modo "tentar de novo" e lance sendo expli
 const S = { plies:[], fens:[], evals:[], info:[], texts:[], aiTexts:null, cur:0, side:"b", flip:false, analysed:false, lesson:false, engine:null, runId:0 };
 
 /* ---------- entrada ---------- */
+/* ---------- chess.com: suas partidas pela API pública (api.chess.com/pub) ----------
+   Usuário ou link do perfil → lista das últimas partidas; link de partida → acha o PGN nos seus arquivos do mês. */
+const CC_USER_KEY = "px_ccuser";
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function ccUser(){ return lsGet(CC_USER_KEY) || "GuiiiGuiiiiiii"; }   // padrão: o usuário do dono do app; colar outro usuário troca
+async function ccJSON(url){
+  let last;
+  for (let k = 0; k < 2; k++){
+    try{ const r = await fetch(url, { cache: "no-store" }); if (r.status === 404) throw Object.assign(new Error("404"), { nf: true }); if (!r.ok) throw new Error("HTTP " + r.status); return await r.json(); }
+    catch(e){ last = e; if (e.nf) throw e; dlog(`chess.com: ${url} → ${e.message} (tentativa ${k + 1})`); }
+  }
+  throw last;
+}
+async function ccArchives(user, n){
+  const a = await ccJSON(`https://api.chess.com/pub/player/${encodeURIComponent(user.toLowerCase())}/games/archives`);
+  return (a.archives || []).slice(-n).reverse();
+}
+/* entende o que foi colado: {user} | {gameId} | null */
+function ccParse(s){
+  s = s.trim();
+  if (/^[A-Za-z0-9_-]{3,25}$/.test(s) && !/^\d+$/.test(s)) return { user: s };
+  if (!/^https?:\/\/(www\.)?chess\.com\//i.test(s)) return null;
+  let u; try{ u = new URL(s); }catch{ return null; }
+  if (u.searchParams.get("moveList") || u.searchParams.get("pgn")) return null;
+  const m = u.pathname.match(/\/member\/([A-Za-z0-9_-]+)/); if (m) return { user: m[1] };
+  const g = u.pathname.match(/\/game\/(?:live\/|daily\/)?(\d+)/); if (g) return { gameId: g[1] };
+  return null;
+}
+const ccResult = (g, me) => { const r = g[me]?.result; return r === "win" ? "win" : ["agreed","repetition","stalemate","insufficient","50move","timevsinsufficient"].includes(r) ? "draw" : "loss"; };
+async function showGames(user){
+  const box = $("games"); box.hidden = false; status("", null);
+  box.innerHTML = `<div class="gh"><span>Carregando as partidas de <b>${esc(user)}</b>…</span></div>`;
+  let games = [];
+  try{
+    for (const url of await ccArchives(user, 2)){ const d = await ccJSON(url); games.push(...(d.games || []).reverse()); if (games.length >= 30) break; }
+  }catch(e){
+    box.innerHTML = `<div class="gh"><span>${e.nf ? `Não achei o usuário <b>${esc(user)}</b> no chess.com.` : "Não consegui falar com o chess.com agora. Tente de novo em instantes, ou cole o PGN da partida."}</span><button type="button" id="gamesClose">Fechar</button></div>`;
+    $("gamesClose").onclick = () => box.hidden = true; return;
+  }
+  try{ localStorage.setItem(CC_USER_KEY, user); }catch{}
+  $("gamesBtn").hidden = false;
+  games = games.filter(g => g.pgn && (!g.rules || g.rules === "chess")).slice(0, 30);
+  const lu = user.toLowerCase(), RS = { win: "Vitória", loss: "Derrota", draw: "Empate" }, TC = { bullet: "Bullet", blitz: "Blitz", rapid: "Rápida", daily: "Diária" };
+  box.innerHTML = `<div class="gh"><span>Partidas de <b>${esc(user)}</b> — escolha uma</span><button type="button" id="gamesClose">Fechar</button></div>` + (games.length ? games.map((g, i) => {
+    const me = g.white?.username?.toLowerCase() === lu ? "white" : "black", op = me === "white" ? g.black : g.white, res = ccResult(g, me);
+    const d = new Date((g.end_time || 0) * 1000);
+    return `<button type="button" class="g" data-i="${i}"><span class="pc ${me[0]}"></span><span class="op">vs ${esc(op?.username || "?")} <small>(${op?.rating ?? "?"})</small></span><span class="rs ${res}">${RS[res]}</span><span class="dt">${TC[g.time_class] || ""} · ${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</span></button>`;
+  }).join("") : `<div class="gh"><span>Nenhuma partida nos últimos meses.</span></div>`);
+  $("gamesClose").onclick = () => box.hidden = true;
+  box.querySelectorAll("button.g").forEach(b => b.onclick = () => {
+    const g = games[+b.dataset.i]; box.hidden = true;
+    $("src").value = g.pgn; $("side").value = g.white?.username?.toLowerCase() === lu ? "w" : "b"; run();
+  });
+}
+async function ccFindGame(id){
+  const user = ccUser();
+  if (!user) throw new Error("Para abrir links de partida, cole uma vez o seu usuário do chess.com (ou o link do seu perfil) e clique em Analisar.");
+  status("Buscando a partida no chess.com…", 10);
+  for (const url of await ccArchives(user, 3)){
+    const d = await ccJSON(url); const g = (d.games || []).find(x => String(x.url || "").endsWith("/" + id));
+    if (g){ $("side").value = g.white?.username?.toLowerCase() === user.toLowerCase() ? "w" : "b"; return g.pgn; }
+  }
+  throw new Error(`Não achei essa partida entre as de ${user} dos últimos 3 meses. Se for de outra pessoa, cole o PGN.`);
+}
 function parseInput(raw){
   const s = raw.trim();
   if (!s) throw new Error("Cole um link ou um PGN.");
@@ -756,7 +834,7 @@ function parseInput(raw){
     if (ml) return { sans: ml.split(/\s+/).filter(Boolean), color: u.searchParams.get("color") };
     const pgn = u.searchParams.get("pgn");
     if (pgn) return { pgn };
-    throw new Error("Esse link não traz os lances dentro dele. Links de partida (chess.com/game/…) não funcionam aqui: abra a partida no chess.com, vá em Compartilhar → PGN, copie e cole o PGN neste campo.");
+    throw new Error("Esse link não traz os lances. Cole o link da partida do chess.com, o seu usuário, ou o PGN.");
   }
   return { pgn: s };
 }
@@ -3219,6 +3297,13 @@ function status(t, pct, err){ $("status").classList.toggle("idle", pct === null 
 async function run(){
   const my = ++S.runId; stopLesson(); const tRun = performance.now();
   let inp, game;
+  const cc = ccParse($("src").value);
+  if (cc?.user){ $("src").value = ""; showGames(cc.user); return; }
+  if (cc?.gameId){
+    try{ const pgn = await ccFindGame(cc.gameId); if (my !== S.runId) return; $("src").value = pgn; }
+    catch(e){ status(e.nf ? "Não achei esse usuário no chess.com." : /^(HTTP|Failed|NetworkError|Load failed)/.test(e.message) ? "Não consegui falar com o chess.com agora. Tente de novo, ou cole o PGN." : e.message, null, true); return; }
+  }
+  $("games").hidden = true;
   try{ inp = parseInput($("src").value); game = buildGame(inp); }
   catch(e){ status(e.message, null, true); return; }
   if (inp.color === "white" || inp.color === "black") $("side").value = inp.color[0];
@@ -3292,6 +3377,8 @@ async function run(){
 }
 
 $("loader").addEventListener("submit", e => { e.preventDefault(); run(); });
+$("gamesBtn").onclick = () => { const b = $("games"); if (!b.hidden) b.hidden = true; else if (ccUser()) showGames(ccUser()); };
+$("gamesBtn").hidden = !ccUser();
 $("side").onchange = () => { if (!S.plies.length) return; S.side = $("side").value; if (S.analysed){ computeBook(); S.cls = S.plies.map((_,i)=>classify(i)); renderMoves(); S.texts = S.plies.map((_,i)=>teacherText(i)); S.intro = introText(); S.aiTexts = null; S.aiSummary = null; renderSummary(); renderGraph(); setTimeout(prepareAll, 0); if (sampleFn) commentWithClaude(false); } renderPlayers(); drawBoard(); renderLesson(); };
 $("first").onclick = navFirst;
 $("prev").onclick = navPrev;
