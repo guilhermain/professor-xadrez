@@ -123,6 +123,29 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .playsetup,.playbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:8px 12px;margin-left:28px;background:var(--surface);border:1px solid var(--accent);border-radius:var(--r);font-size:.85rem}
 .playsetup select{width:auto;padding:4px 6px}
 .playbar{justify-content:space-between}
+.clk{margin-left:auto;font-family:var(--font-mono);font-weight:700;font-size:1.05rem;padding:3px 10px;border-radius:5px;background:#21201d;color:#a8a6a2;min-width:74px;text-align:right}
+.clk.on{background:#f2f1ee;color:#1c1c1c}.clk.low{background:#ca3431;color:#fff}
+dialog.ng{border:0;border-radius:12px;padding:0;background:var(--surface);color:var(--fg);width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 32px);box-shadow:0 20px 60px rgba(0,0,0,.6)}
+dialog.ng::backdrop{background:rgba(0,0,0,.6)}
+.ng form{display:grid;gap:16px;padding:18px 20px 20px}
+.ng h2{margin:0;font-size:1.2rem;display:flex;justify-content:space-between;align-items:center}
+.ng h3{margin:0 0 8px;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:#a8a6a2;font-weight:700}
+.bots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.bot{display:grid;grid-template-columns:40px 1fr;gap:2px 10px;align-items:center;text-align:left;padding:9px 10px;background:var(--surface-2);border:2px solid transparent;border-radius:8px;font-weight:500;box-shadow:none}
+.bot[aria-pressed="true"]{border-color:var(--accent);background:var(--surface-3)}
+.bot .av{grid-row:span 2;width:40px;height:40px;border-radius:8px;display:grid;place-items:center;font-size:1.4rem}
+.bot b{font-size:.92rem}.bot small{color:#a8a6a2;font-size:.76rem}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:7px 12px;font-weight:600;font-size:.86rem;background:var(--surface-2);box-shadow:none;border:2px solid transparent}
+.chips button[aria-pressed="true"]{border-color:var(--accent);background:var(--surface-3)}
+.ngrow{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.ngelo{display:flex;align-items:center;gap:12px}.ngelo input{flex:1;accent-color:var(--accent)}.ngelo output{font-family:var(--font-mono);font-weight:700;min-width:70px;text-align:right}
+.ngnote{font-size:.8rem;color:#a8a6a2;margin:6px 0 0}
+.ngchecks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px;font-size:.88rem}
+.ngchecks label{display:flex;gap:7px;align-items:center}
+.ngfoot{display:flex;justify-content:flex-end;gap:8px;align-items:center}
+.ngfoot .primary{padding:11px 26px;font-size:1rem}
+@media (max-width:640px){.ngrow{grid-template-columns:1fr}}
 .playbar #playMsg{font-weight:700}
 .playbar .chk{display:flex;gap:5px;align-items:center;color:var(--muted)}
 .playbtns{display:flex;gap:6px}
@@ -604,6 +627,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
       <textarea id="src" rows="1" spellcheck="false" placeholder="Cole seu usuário do chess.com, o link da partida ou o PGN"></textarea>
       <button class="primary" id="go" type="submit">Analisar</button>
       <button type="button" id="gamesBtn" hidden>Minhas partidas</button>
+      <button type="button" id="playBtn">♟ Jogar</button>
       <button type="button" class="icon" id="gearBtn" aria-label="Configurações" aria-expanded="false">⚙</button>
     </form>
   </header>
@@ -635,7 +659,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
     <p class="note" id="gpuInfo">Placa de vídeo: verificando…</p>
     <p class="note">Atalhos: ← → navegam · espaço liga a aula · Esc fecha a prévia. Botão direito desenha setas.</p>
     <details class="diag" id="diag"><summary>Diagnóstico</summary><div class="diagbar"><button type="button" id="diagCopy">Copiar</button><span id="diagMsg"></span></div><pre id="diagLog"></pre></details>
-    <p class="note credit">v<span id="ver">6.5</span> · Stockfish 18/19 · tabuleiro chessground (lichess) · voz Kokoro-82M · sons do lichess · todos GPL/AGPL/Apache/MIT</p>
+    <p class="note credit">v<span id="ver">6.6</span> · Stockfish 18/19 · tabuleiro chessground (lichess) · adversário humano Maia 3 (CSSLab) · voz Kokoro-82M · sons do lichess · todos GPL/AGPL/Apache/MIT</p>
   </section>
 
   <div class="main">
@@ -649,7 +673,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
       <div class="playbar" id="playBar" hidden>
         <span id="playMsg"></span>
         <label class="chk"><input type="checkbox" id="playSpeak" checked> Voz</label>
-        <span class="playbtns"><button id="playHint" type="button">💡 Dica</button><button id="playUndo" type="button">↶</button><button id="playExit" type="button">Encerrar</button></span>
+        <span class="playbtns"><button id="playHint" type="button">💡 Dica</button><button id="playUndo" type="button">↶</button><button id="playResign" type="button">🏳 Desistir</button><button id="playReview" type="button" hidden>Analisar partida</button><button id="playNew" type="button" hidden>Nova partida</button><button id="playExit" type="button">Sair</button></span>
       </div>
     </div>
 
@@ -710,7 +734,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
 <script type="module">
 import { Chess } from "./chess.js";
 import { Chessground } from "./chessground.min.js";
-const VERSION = "v6.5";
+const VERSION = "v6.6";
 console.log(`Professor de Xadrez ${VERSION} iniciado`);
 
 const $ = id => document.getElementById(id);
@@ -1982,11 +2006,11 @@ function renderVariation(){
   const n = S.node, g = new Chess(n.fen), base = branchMain(n);
   $("licon").innerHTML = ""; setEv(null);
   if (PLAY.on){
-    $("lmv").textContent = "Jogando contra o Stockfish · força máxima";
-    const st = PLAY.over || (PLAY.thinking ? "O computador está pensando…" : (g.turn() === PLAY.you ? "Sua vez." : "Vez do computador."));
-    const feed = PLAY.feed.slice(-2).map(x => coachHTML(x, nodeMove(x)?.color === PLAY.you ? "Seu lance" : "Computador")).join("");
+    $("lmv").textContent = `Jogando contra ${PLAY.cfg ? PLAY.cfg.name + " · " : ""}${botLabel()}`;
+    const st = PLAY.over || (PLAY.thinking ? `${botName()} está pensando…` : (g.turn() === PLAY.you ? "Sua vez." : `Vez de ${botName()}.`));
+    const feed = PLAY.feed.slice(-2).filter(x => x.coach || !PLAY.cfg || PLAY.cfg.coach).map(x => coachHTML(x, nodeMove(x)?.color === PLAY.you ? "Seu lance" : botName())).join("");
     const hint = !PLAY.over && !PLAY.thinking && g.turn() === PLAY.you && n.hint ? `<div class="feed playhint"><div class="feedtext"><b>${toHTML(n.hint.text)}</b></div></div>` : "";
-    $("ltext").innerHTML = `<div class="feedstatus${PLAY.thinking ? " thinking" : ""}">${toHTML(PLAY.thinking ? "O computador está pensando" : st)}</div>` + hint + feed;     // o mais importante primeiro
+    $("ltext").innerHTML = `<div class="feedstatus${PLAY.thinking ? " thinking" : ""}">${toHTML(PLAY.thinking ? `${botName()} está pensando` : st)}</div>` + hint + feed;     // o mais importante primeiro
     $("lsrc").textContent = "";
     return;
   }
@@ -2142,9 +2166,9 @@ function renderPlayers(){
   const me = PLAY.on ? PLAY.you : S.side, H = S.headers || {};
   const name = c => { const n = H[c === "w" ? "White" : "Black"]; return n && n !== "?" ? n : (c === "w" ? "Brancas" : "Pretas"); };
   const elo = c => { const e = H[c === "w" ? "WhiteElo" : "BlackElo"]; return e && /^\d+$/.test(e) ? ` <span class="elo">(${e})</span>` : ""; };
-  const tag = c => c === me ? `<span class="you">você</span>` : (PLAY.on ? `<span class="elo">Stockfish · força máxima</span>` : "");
+  const tag = c => c === me ? `<span class="you">você</span>` : (PLAY.on ? `<span class="elo">${botLabel()}</span>` : "");
   const fen = S.node?.fen || new Chess().fen();
-  const lbl = c => `<span class="pav ${c}">${c === "w" ? "♔" : "♚"}</span><b>${name(c).replace(/</g, "&lt;")}${elo(c)}</b>${tag(c)}${S.plies.length ? capturedHTML(fen, c) : ""}`;
+  const lbl = c => `<span class="pav ${c}">${c === "w" ? "♔" : "♚"}</span><b>${name(c).replace(/</g, "&lt;")}${elo(c)}</b>${tag(c)}${S.plies.length || PLAY.on ? capturedHTML(fen, c) : ""}${clockHTML(c)}`;
   $("ptop").innerHTML = lbl(flipped ? "w" : "b");
   $("pbot").innerHTML = lbl(flipped ? "b" : "w");
 }
@@ -2178,7 +2202,7 @@ function goNodeInner(node, how){
   if (PREVIEW) endPreview(true);
   if (RETRY) exitRetry(true);
   if (EXPLAIN && EXPLAIN !== node) EXPLAIN = null;
-  if (PLAY.on && (how === "move" || how === "bot")) PLAY.nodes.add(node);
+  if (PLAY.on && (how === "move" || how === "bot")){ PLAY.nodes.add(node); const mv = nodeMove(node); if (mv) clockMoved(mv.color); }
   if (PLAY.on && how === "nav" && !isInPlayLine(node)) exitPlay("Partida encerrada porque você saiu da posição.");
   const prev = S.node; S.node = node;
   if (node.main !== null) S.cur = node.main;
@@ -2199,7 +2223,8 @@ function goNodeInner(node, how){
     const speakIt = PLAY.on ? $("playSpeak").checked : $("speakNav").checked;
     const bot = PLAY.on && nodeMove(node)?.color !== PLAY.you;
     if (PLAY.on){ PLAY.feed.push(node); if (PLAY.feed.length > 6) PLAY.feed.shift(); }
-    Promise.all([node.main === null ? coachNode(node) : null, bot ? bestHint(node) : ""]).then(([c, hint]) => {
+    const wantCoach = !PLAY.on || !PLAY.cfg || PLAY.cfg.coach, wantHint = bot && (!PLAY.cfg || PLAY.cfg.auto);
+    Promise.all([node.main === null && wantCoach ? coachNode(node) : null, wantHint ? bestHint(node) : ""]).then(([c, hint]) => {
       if (S.node === node || PLAY.feed.includes(node)){ renderLesson(); drawOverlay(); }
       if (!speakIt) return;
       let t = c?.text && (!bot || /Atenção|errou|mate|Xeque/.test(c.text)) ? c.text : "";   // do computador, só o que importa
@@ -2276,15 +2301,139 @@ function renderLive(done){
 }
 $("liveOn").onchange = () => liveAnalyse();
 
-/* ---------- jogar contra o Stockfish a partir da posição ---------- */
+/* ---------- adversário humano: Maia 3 (rede neural treinada em partidas reais) ---------- */
+function mirrorFEN(fen){
+  const [pos, ac, ca, ep, h, f] = fen.split(" ");
+  const sw = c => c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase();
+  const mpos = pos.split("/").reverse().map(r => r.replace(/[a-z]/gi, sw)).join("/");
+  const mca = ca === "-" ? "-" : ["K","Q","k","q"].filter(x => ca.includes(sw(x))).join("") || "-";
+  const mep = ep === "-" ? "-" : ep[0] + (9 - +ep[1]);
+  return `${mpos} ${ac === "w" ? "b" : "w"} ${mca} ${mep} ${h || 0} ${f || 1}`;
+}
+const mirrorUci = u => u[0] + (9 - +u[1]) + u[2] + (9 - +u[3]) + u.slice(4);
+function maiaTokens(fen){
+  const types = "PNBRQKpnbrqk", t = new Float32Array(768), rows = fen.split(" ")[0].split("/");
+  for (let r = 0; r < 8; r++){ let file = 0; for (const ch of rows[r]){ if (/\d/.test(ch)) file += +ch; else { t[((7 - r) * 8 + file) * 12 + types.indexOf(ch)] = 1; file++; } } }
+  return t;
+}
+const MAIA = {
+  w: null, p: null, ready: false, prog: 0, id: 0, jobs: new Map(),
+  start(){
+    if (this.p) return this.p;
+    this.p = new Promise((res, rej) => {
+      let w; try{ w = this.w = new Worker("maia-worker.js?t=" + (self.crossOriginIsolated ? 2 : 1)); }catch(e){ this.p = null; return rej(e); }
+      w.onmessage = e => { const m = e.data;
+        if (m.type === "progress"){ this.prog = m.p; if (PLAY.on) setPlayMsg(); if ($("ngDlg").open) ngKindNote(); }
+        else if (m.type === "ready"){ this.ready = true; dlog("Maia 3 pronta"); res(); if (PLAY.on) setPlayMsg(); }
+        else if (m.type === "result" || (m.type === "error" && m.id !== undefined)){ const j = this.jobs.get(m.id); this.jobs.delete(m.id); m.type === "result" ? j?.res(m.probs) : j?.rej(new Error(m.message)); }
+        else if (m.type === "error"){ dlog("Maia falhou: " + m.message); this.p = null; this.w?.terminate(); rej(new Error(m.message)); } };
+      w.onerror = e => { e.preventDefault?.(); this.p = null; rej(new Error(e.message || "worker")); };
+      w.postMessage({ cmd: "init" });
+    });
+    return this.p;
+  },
+  /* lances legais com a chance de uma pessoa de rating `elo` (contra `opp`) jogar cada um */
+  async policy(fen, elo, opp){
+    await this.start();
+    const black = fen.split(" ")[1] === "b", f = black ? mirrorFEN(fen) : fen;
+    const legal = new Chess(f).moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ""));
+    const tokens = maiaTokens(f), id = ++this.id;
+    const probs = await new Promise((res, rej) => { this.jobs.set(id, { res, rej }); this.w.postMessage({ cmd: "run", id, tokens, legal, elo, opp }, [tokens.buffer]); });
+    return legal.map((u, i) => [black ? mirrorUci(u) : u, probs[i]]).sort((a, b) => b[1] - a[1]);
+  },
+};
+async function maiaMove(fen, cfg){
+  const pol = await MAIA.policy(fen, cfg.elo, cfg.oppElo || cfg.elo);
+  if (cfg.style === "top") return pol[0][0];
+  const ok = pol.filter(([, p]) => p >= 0.03); const L = ok.length ? ok : pol.slice(0, 1);   // natural: sorteia como uma pessoa, sem lances absurdos (<3%)
+  let r = Math.random() * L.reduce((a, [, p]) => a + p, 0);
+  for (const [u, p] of L){ r -= p; if (r <= 0) return u; }
+  return L[0][0];
+}
+
+/* ---------- adversários prontos (todos ajustáveis no diálogo) ---------- */
+const BOTS = [
+  { id: "m600",  kind: "maia", elo: 600,  name: "Lia",   av: "🐣", bg: "#5d8a3a", desc: "Começando agora" },
+  { id: "m900",  kind: "maia", elo: 900,  name: "Theo",  av: "🙂", bg: "#4a7a8c", desc: "Jogador casual" },
+  { id: "m1200", kind: "maia", elo: 1200, name: "Nina",  av: "😎", bg: "#8c6a3a", desc: "Clube, nível médio" },
+  { id: "m1500", kind: "maia", elo: 1500, name: "Rafa",  av: "🧠", bg: "#7a4a8c", desc: "Forte de clube" },
+  { id: "m1800", kind: "maia", elo: 1800, name: "Bia",   av: "🦊", bg: "#a0522d", desc: "Experiente" },
+  { id: "m2100", kind: "maia", elo: 2100, name: "Caio",  av: "🦅", bg: "#2e6b5e", desc: "Nível de mestre" },
+  { id: "m2500", kind: "maia", elo: 2500, name: "Vera",  av: "👑", bg: "#8c2f39", desc: "Nível grande mestre" },
+  { id: "s1500", kind: "sf", elo: 1500, name: "Robô 1500", av: "🤖", bg: "#3d4f6b", desc: "Stockfish no Elo 1500" },
+  { id: "s2200", kind: "sf", elo: 2200, name: "Robô 2200", av: "🤖", bg: "#2f3d55", desc: "Stockfish no Elo 2200" },
+  { id: "smax",  kind: "sf", elo: 0,    name: "Stockfish", av: "🔥", bg: "#1f2a3c", desc: "Força máxima (~3600)" },
+];
+const TCS = [["0", "Sem relógio"], ["1+0", "1 min"], ["3+0", "3 min"], ["3+2", "3 | 2"], ["5+0", "5 min"], ["10+0", "10 min"], ["15+10", "15 | 10"], ["30+0", "30 min"], ["c", "Outro…"]];
+const NG_DEF = { bot: "m1200", kind: "maia", elo: 1200, color: "w", tc: "10+0", min: 10, inc: 5, start: "init", fen: "", style: "nat", coach: true, auto: false, hints: true, undo: true, voice: true, fast: false };
+let NG = { ...NG_DEF, ...(JSON.parse(lsGet("px_ng") || "{}") || {}) };
+const SF_MIN = 1320, SF_MAX = 3190;
+function ngSync(){
+  const chips = (id, v) => $(id).querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
+  $("ngBots").querySelectorAll(".bot").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.id === NG.bot)));
+  chips("ngKind", NG.kind); chips("ngColor", NG.color); chips("ngTc", NG.tc); chips("ngStart", NG.start); chips("ngStyle", NG.style);
+  const e = $("ngElo");
+  if (NG.kind === "maia"){ e.min = 600; e.max = 2600; e.step = 50; if (NG.elo < 600 || NG.elo > 2600) NG.elo = Math.max(600, Math.min(2600, NG.elo || 2600)); }
+  else { e.min = SF_MIN; e.max = SF_MAX + 10; e.step = 10; }
+  e.value = NG.kind === "sf" && !NG.elo ? SF_MAX + 10 : NG.elo;
+  $("ngEloOut").textContent = NG.kind === "sf" && !NG.elo ? "Máximo" : NG.elo;
+  $("ngEloNote").textContent = NG.kind === "maia" ? "Rating de partidas rápidas online (lichess). Ele erra como uma pessoa desse nível erraria." : NG.elo ? "Stockfish com força limitada por Elo (o mesmo método do lichess)." : "Stockfish sem limite: o motor mais forte do mundo. Boa sorte.";
+  ngKindNote();
+  $("ngStyleBox").hidden = NG.kind !== "maia";
+  $("ngStyleNote").textContent = NG.style === "nat" ? "Varia os lances como uma pessoa: cada partida sai diferente." : "Sempre o lance mais comum para esse rating.";
+  $("ngTcCustom").hidden = NG.tc !== "c"; $("ngMin").value = NG.min; $("ngInc").value = NG.inc;
+  $("ngFen").hidden = NG.start !== "fen"; $("ngFen").value = NG.fen || "";
+  for (const k of ["coach", "auto", "hints", "undo", "voice", "fast"]) $("ng" + k[0].toUpperCase() + k.slice(1)).checked = !!NG[k];
+  $("ngMsg").textContent = "";
+}
+function ngKindNote(){
+  $("ngKindNote").textContent = NG.kind === "maia"
+    ? "Maia 3: rede neural treinada em milhões de partidas de pessoas. Joga como humano, não como robô." + (MAIA.ready ? "" : MAIA.prog > 0 && MAIA.prog < 1 ? ` Baixando: ${Math.round(MAIA.prog * 100)}%.` : " Na primeira vez baixa 46 MB (fica guardado).")
+    : "Stockfish 18/19: o motor mais forte que existe. Limitado por Elo, ele joga bem mas erra de propósito de vez em quando.";
+}
+function ngOpen(){
+  $("ngBots").innerHTML = BOTS.map(b => `<button type="button" class="bot" data-id="${b.id}"><span class="av" style="background:${b.bg}">${b.av}</span><b>${b.name}${b.elo && b.kind === "maia" ? " · " + b.elo : ""}</b><small>${b.desc}</small></button>`).join("");
+  $("ngTc").innerHTML = TCS.map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join("");
+  $("ngStart").querySelector('[data-v="board"]').hidden = !S.node;
+  if (NG.start === "board" && !S.node) NG.start = "init";
+  ngSync(); $("ngDlg").showModal();
+  if (NG.kind === "maia") MAIA.start().catch(() => {});      // já começa a baixar enquanto você escolhe
+}
+function ngWire(){
+  const chip = (id, key, after) => $(id).addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (!b) return; NG[key] = b.dataset.v; after?.(); ngSync(); });
+  $("ngBots").addEventListener("click", e => { const b = e.target.closest(".bot"); if (!b) return; const B = BOTS.find(x => x.id === b.dataset.id); Object.assign(NG, { bot: B.id, kind: B.kind, elo: B.elo }); ngSync(); if (B.kind === "maia") MAIA.start().catch(() => {}); });
+  chip("ngKind", "kind", () => { NG.bot = ""; NG.elo = NG.kind === "maia" ? 1500 : 2000; if (NG.kind === "maia") MAIA.start().catch(() => {}); });
+  chip("ngColor", "color"); chip("ngTc", "tc"); chip("ngStart", "start"); chip("ngStyle", "style");
+  $("ngElo").oninput = () => { const v = +$("ngElo").value; NG.bot = ""; NG.elo = NG.kind === "sf" && v > SF_MAX ? 0 : v; ngSync(); };
+  $("ngMin").onchange = () => NG.min = Math.max(0.5, +$("ngMin").value || 10);
+  $("ngInc").onchange = () => NG.inc = Math.max(0, +$("ngInc").value || 0);
+  $("ngFen").oninput = () => NG.fen = $("ngFen").value.trim();
+  for (const k of ["coach", "auto", "hints", "undo", "voice", "fast"]) $("ng" + k[0].toUpperCase() + k.slice(1)).onchange = e => NG[k] = e.target.checked;
+  $("ngClose").onclick = () => $("ngDlg").close();
+  $("ngForm").addEventListener("submit", e => {
+    let fen = null;
+    if (NG.start === "board" && S.node) fen = S.node.fen;
+    if (NG.start === "fen"){ try{ const g = new Chess(NG.fen); if (g.isGameOver()) throw 0; fen = g.fen(); }catch{ e.preventDefault(); $("ngMsg").textContent = "Esse FEN não é uma posição válida para jogar."; return; } }
+    lsSet("px_ng", JSON.stringify(NG));
+    newGame(fen);
+  });
+}
+
+/* ---------- jogar contra o computador ---------- */
 const LEVELS = { 1:{skill:0,depth:1}, 2:{skill:3,depth:2}, 3:{skill:6,depth:4}, 4:{skill:9,depth:6}, 5:{skill:12,depth:8}, 6:{skill:15,depth:10}, 7:{skill:18,movetime:800}, 8:{skill:20,movetime:1500} };
-const PLAY = { on: false, you: "w", level: 4, bot: null, thinking: false, over: "", start: null, hint: null, feed: [] };
+const PLAY = { on: false, you: "w", level: 4, bot: null, thinking: false, over: "", start: null, hint: null, feed: [], cfg: null, clock: null };
+const botLabel = () => { const c = PLAY.cfg; if (!c) return "Stockfish · força máxima"; return c.kind === "maia" ? `Maia 3 · humano ${c.elo}` : c.elo ? `Stockfish · Elo ${c.elo}` : "Stockfish · força máxima"; };
+const botName = () => PLAY.cfg?.name || "O computador";
 /* posições que fazem parte do jogo (o início e cada lance jogado nele) */
 function isInPlayLine(n){ return !!PLAY.nodes?.has(n); }
 async function botEnsure(){
   if (PLAY.bot) return PLAY.bot;
   if (PLAY.botP) return PLAY.botP;
-  PLAY.botP = (async () => { const e = new Engine(sideFile()); await e.init(30000); e.send("setoption name Skill Level value 20"); PLAY.bot = e; return e; })();
+  PLAY.botP = (async () => { const e = new Engine(sideFile()); await e.init(30000);
+    const elo = PLAY.cfg?.kind === "sf" ? PLAY.cfg.elo : 0;
+    if (elo){ e.send("setoption name UCI_LimitStrength value true"); e.send("setoption name UCI_Elo value " + Math.max(SF_MIN, Math.min(SF_MAX, elo))); }
+    else e.send("setoption name Skill Level value 20");
+    PLAY.bot = e; return e; })();
   PLAY.botP.catch(() => { PLAY.botP = null; });
   return PLAY.botP;
 }
@@ -2292,22 +2441,98 @@ async function botEnsure(){
 function autoPlay(){
   if (!S.analysed || !S.node || PLAY.on) return;
   if (S.lesson) stopLesson(); Voice.stop(); endPreview(true); EXPLAIN = null;
+  PLAY.cfg = null; PLAY.clock = null; resetBot();
   PLAY.on = true; PLAY.you = new Chess(S.node.fen).turn(); PLAY.level = 8; PLAY.over = ""; PLAY.start = S.node; PLAY.nodes = new Set([S.node]); PLAY.hint = null; PLAY.feed = [];
-  $("playBar").hidden = false; setPlayMsg(); renderPlayers();
+  playButtons(); $("playBar").hidden = false; setPlayMsg(); renderPlayers();
   botEnsure().catch(e => exitPlay("O motor do adversário não carregou: " + e.message));
   dlog(`jogo automático: você de ${PLAY.you === "w" ? "brancas" : "pretas"}, Stockfish força máxima`);
 }
 function setPlayMsg(){
   const g = new Chess(S.node.fen);
-  $("playMsg").textContent = PLAY.over || (PLAY.thinking ? "Computador pensando…" : g.turn() === PLAY.you ? "Sua vez" : "Vez do computador");
+  const dl = PLAY.cfg?.kind === "maia" && !MAIA.ready && MAIA.prog < 1 ? ` (baixando o adversário: ${Math.round(MAIA.prog * 100)}%)` : "";
+  $("playMsg").textContent = PLAY.over || (PLAY.thinking ? `${botName()} está pensando…${dl}` : g.turn() === PLAY.you ? "Sua vez" : `Vez de ${botName()}${dl}`);
+  playButtons();
+}
+function resetBot(){ try{ PLAY.bot?.kill("nova partida"); }catch{} PLAY.bot = null; PLAY.botP = null; }
+function playButtons(){
+  const c = PLAY.cfg, n = PLAY.nodes ? PLAY.nodes.size - 1 : 0;
+  $("playHint").hidden = !!(c && !c.hints) || !!PLAY.over; $("playUndo").hidden = !!(c && !c.undo) || !!PLAY.over;
+  $("playResign").hidden = !c || !!PLAY.over; $("playNew").hidden = !c || !PLAY.over;
+  $("playReview").hidden = !c || n < 2; $("playExit").textContent = c && !PLAY.over ? "Sair" : "Fechar";
+}
+/* ---------- relógio ---------- */
+const fmtClock = ms => { ms = Math.max(0, ms); const s = Math.ceil(ms / 1000); return ms < 10000 ? (ms / 1000).toFixed(1) : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+function clockLeft(c){ const K = PLAY.clock; return K.left[c] - (K.turn === c && K.t ? performance.now() - K.t : 0); }
+function clockHTML(c){ if (!PLAY.on || !PLAY.clock) return ""; const ms = clockLeft(c); return `<span class="clk${PLAY.clock.turn === c ? " on" : ""}${ms < 20000 && PLAY.clock.turn === c ? " low" : ""}" data-c="${c}">${fmtClock(ms)}</span>`; }
+function clockTick(){
+  if (!PLAY.on || !PLAY.clock) return;
+  document.querySelectorAll(".clk").forEach(el => { const c = el.dataset.c, ms = clockLeft(c); el.textContent = fmtClock(ms); el.classList.toggle("on", PLAY.clock.turn === c); el.classList.toggle("low", PLAY.clock.turn === c && ms < 20000); });
+  const K = PLAY.clock;
+  if (K.turn && !PLAY.over && clockLeft(K.turn) <= 0){
+    K.left[K.turn] = 0;
+    PLAY.over = K.turn === PLAY.you ? `Seu tempo acabou. ${botName()} venceu.` : `O tempo de ${botName()} acabou. Você venceu!`;
+    clockStop(); sound("end"); setPlayMsg(); drawBoard(); renderLesson(); renderPlayers();
+  }
+}
+function clockStop(){ const K = PLAY.clock; if (!K) return; if (K.turn && K.t) K.left[K.turn] -= performance.now() - K.t; K.turn = null; K.t = 0; }
+/* chamado a cada lance: quem jogou ganha o incremento e o relógio do outro começa (a partir do 2º lance) */
+function clockMoved(mover){
+  const K = PLAY.clock; if (!K || PLAY.over) return;
+  const now = performance.now();
+  if (K.turn === mover && K.t){ K.left[mover] -= now - K.t; K.left[mover] += K.inc; }
+  K.moves++;
+  const nx = mover === "w" ? "b" : "w";
+  if (K.moves >= 2){ K.turn = nx; K.t = now; } else { K.turn = null; K.t = 0; }
+  clockTick();
+}
+setInterval(clockTick, 100);
+
+/* nova partida do zero (ou de uma posição) contra o adversário escolhido no diálogo */
+function newGame(fen0){
+  const fen = fen0 || new Chess().fen();
+  const B = BOTS.find(x => x.id === NG.bot);
+  const you = NG.color === "r" ? (Math.random() < 0.5 ? "w" : "b") : NG.color;
+  const name = B ? B.name : NG.kind === "maia" ? `Maia ${NG.elo}` : NG.elo ? `Robô ${NG.elo}` : "Stockfish";
+  const [mn, inc] = NG.tc === "c" ? [NG.min, NG.inc] : NG.tc.split("+").map(Number);
+  S.runId++; if (S.lesson) stopLesson(); Voice.stop(); exitRetry(true); aiCtl?.abort(); if (PLAY.on) exitPlay(); EXPLAIN = null;
+  const opp = you === "w" ? "b" : "w", tagN = c => c === "w" ? "White" : "Black";
+  S.headers = { Event: "Professor de Xadrez", Date: new Date().toISOString().slice(0, 10).replace(/-/g, "."), [tagN(you)]: "Você", [tagN(opp)]: name, [tagN(opp) + "Elo"]: NG.elo ? String(NG.elo) : "" };
+  if (fen !== new Chess().fen()){ S.headers.SetUp = "1"; S.headers.FEN = fen; }
+  S.side = you; $("side").value = you; S.flip = false; S.freeplay = true;
+  S.plies = []; S.fens = [fen]; S.evals = [0]; S.info = [{ pv: [], best: null }]; S.cls = []; S.texts = []; S.threat = []; S.aiTexts = null; S.intro = ""; S.aiSummary = null;
+  S.book = [null]; S.bookRun = 0; S.lastBook = 0; S.opening = null; S.useEngine = new Set(); S.cur = 0; S.analysed = true;
+  buildTree(); renderMoves(); $("summary").innerHTML = ""; $("graph").innerHTML = ""; $("games").hidden = true; status("", null);
+  PLAY.cfg = { kind: NG.kind, elo: NG.elo, oppElo: 1500, style: NG.style, name, coach: NG.coach, auto: NG.auto, hints: NG.hints, undo: NG.undo, fast: NG.fast };
+  PLAY.clock = mn ? { left: { w: mn * 60000, b: mn * 60000 }, inc: (inc || 0) * 1000, turn: null, t: 0, moves: 0 } : null;
+  resetBot();
+  PLAY.on = true; PLAY.you = you; PLAY.over = ""; PLAY.start = S.node; PLAY.nodes = new Set([S.node]); PLAY.hint = null; PLAY.feed = []; PLAY.thinking = false;
+  $("playSpeak").checked = NG.voice;
+  playButtons(); $("playBar").hidden = false; setPlayMsg(); renderPlayers(); drawBoard(); renderLesson(); liveAnalyse();
+  engineReady().catch(() => {});
+  if (NG.kind === "maia") MAIA.start().catch(e => { PLAY.over = "O adversário humano não carregou: " + e.message; setPlayMsg(); });
+  else botEnsure().catch(e => exitPlay("O motor do adversário não carregou: " + e.message));
+  dlog(`nova partida: você de ${you === "w" ? "brancas" : "pretas"} contra ${name} (${botLabel()})${PLAY.clock ? `, relógio ${mn}+${inc || 0}` : ""}`);
+  if (new Chess(fen).turn() !== you) afterPlayMove("start");
+}
+/* a partida jogada (do início até agora) em PGN */
+function playPGN(){
+  const path = []; let n = S.node; while (n && n !== PLAY.start){ path.unshift(n); n = n.parent; }
+  const g = new Chess(PLAY.start.fen);
+  for (const x of path) g.move({ from: x.uci.slice(0, 2), to: x.uci.slice(2, 4), promotion: x.uci[4] });
+  const H = { ...S.headers }; if (PLAY.start.fen !== new Chess().fen()){ H.SetUp = "1"; H.FEN = PLAY.start.fen; }
+  const res = PLAY.over ? (/empate|Afogamento|Repetição|insuficiente/i.test(PLAY.over) ? "1/2-1/2" : /Você venceu/.test(PLAY.over) ? (PLAY.you === "w" ? "1-0" : "0-1") : (PLAY.you === "w" ? "0-1" : "1-0")) : "*";
+  H.Result = res;
+  return Object.entries(H).filter(([, v]) => v).map(([k, v]) => `[${k} "${String(v).replace(/"/g, "'")}"]`).join("\n") + "\n\n" + g.pgn().replace(/^(\[.*\]\n)*\n?/, "").replace(/\s*(\*|1-0|0-1|1\/2-1\/2)\s*$/, "") + " " + res;
 }
 function checkGameOver(){
   const g = new Chess(S.node.fen);
-  if (g.isCheckmate()) PLAY.over = g.turn() === PLAY.you ? "Xeque-mate. O computador venceu." : "Xeque-mate! Você venceu.";
+  if (PLAY.over) return true;
+  if (g.isCheckmate()) PLAY.over = g.turn() === PLAY.you ? `Xeque-mate. ${botName()} venceu.` : "Xeque-mate! Você venceu.";
   else if (g.isStalemate()) PLAY.over = "Afogamento: empate.";
   else if (g.isThreefoldRepetition()) PLAY.over = "Repetição tripla: empate.";
   else if (g.isInsufficientMaterial()) PLAY.over = "Material insuficiente: empate.";
   else if (g.isDraw()) PLAY.over = "Empate.";
+  if (PLAY.over){ clockStop(); sound("end"); renderPlayers(); }
   return !!PLAY.over;
 }
 /* depois do lance do computador: qual é o seu melhor lance agora, e por quê */
@@ -2327,27 +2552,45 @@ async function afterPlayMove(how){
   setPlayMsg();
   if (g.turn() === PLAY.you || PLAY.thinking || how === "nav") return;
   PLAY.thinking = true; setPlayMsg(); drawBoard(); renderLesson();
-  const fen = S.node.fen, lv = LEVELS[PLAY.level], t0 = performance.now();
+  const fen = S.node.fen, t0 = performance.now(), c = PLAY.cfg, me = g.turn();
+  // tempo de pensar: com relógio, uma fração do que resta; sem relógio, ~1 s
+  const left = PLAY.clock ? clockLeft(me) : 0, inc = PLAY.clock?.inc || 0;
+  const budget = PLAY.clock ? Math.max(150, Math.min(left / 30 + inc * 0.7, 8000)) : 1000;
   let best = null;
-  try{ await botEnsure(); best = await PLAY.bot.bestMove(fen, lv); }catch(e){ dlog("adversário falhou: " + e.message); }
-  const wait = 450 - (performance.now() - t0); if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  try{
+    if (c?.kind === "maia") best = await maiaMove(fen, c);
+    else {
+      await botEnsure();
+      const lv = c ? { movetime: Math.round(c.elo ? Math.min(budget, 1200) : budget * 1.5) } : LEVELS[PLAY.level];
+      best = await PLAY.bot.bestMove(fen, lv);
+    }
+  }catch(e){ dlog("adversário falhou: " + e.message); }
+  // pausa "humana": o computador não responde instantâneo (a não ser que você peça)
+  const want = c?.fast ? 250 : c ? Math.min(c.kind === "maia" ? 600 + Math.random() * 1400 : 450, PLAY.clock ? budget : 1e9) : 450;
+  const wait = want - (performance.now() - t0); if (wait > 0) await new Promise(r => setTimeout(r, wait));
   PLAY.thinking = false;
-  if (!PLAY.on || S.node.fen !== fen){ drawBoard(); return; }
+  if (!PLAY.on || S.node.fen !== fen || PLAY.over){ setPlayMsg(); drawBoard(); return; }
   if (!best || best === "(none)"){ PLAY.over = "O computador não encontrou lance."; setPlayMsg(); drawBoard(); renderLesson(); return; }
   playUci(best, false);
 }
 function exitPlay(msg){
-  PLAY.on = false; PLAY.thinking = false; PLAY.hint = null;
+  clockStop(); PLAY.on = false; PLAY.thinking = false; PLAY.hint = null;
   $("playBar").hidden = true;
   if (msg) status(msg, null);
   renderPlayers(); drawBoard(); renderLesson(); liveAnalyse();
 }
-$("playExit").onclick = () => exitPlay("Partida contra o computador encerrada. Os lances ficaram salvos como variante.");
+$("playExit").onclick = () => exitPlay(PLAY.cfg ? "" : "Partida contra o computador encerrada. Os lances ficaram salvos como variante.");
+$("playResign").onclick = () => { if (!PLAY.on || PLAY.over) return; PLAY.over = `Você desistiu. ${botName()} venceu.`; clockStop(); sound("end"); setPlayMsg(); drawBoard(); renderLesson(); renderPlayers(); };
+$("playNew").onclick = () => ngOpen();
+$("playReview").onclick = () => { if (!PLAY.on) return; const pgn = playPGN(), you = PLAY.you; exitPlay(); S.freeplay = false; $("src").value = pgn; $("side").value = you; run(); };
+$("playBtn").onclick = () => ngOpen();
+ngWire();
 $("playUndo").onclick = () => {
   if (!PLAY.on || PLAY.thinking) return;
   let n = S.node;
   do { if (n === PLAY.start || !n.parent) break; n = n.parent; } while (new Chess(n.fen).turn() !== PLAY.you);
-  PLAY.over = ""; goNode(n, false);
+  if (PLAY.cfg && !PLAY.cfg.undo) return;
+  PLAY.over = ""; goNode(n, false); if (PLAY.clock){ clockStop(); PLAY.clock.turn = PLAY.you; PLAY.clock.t = performance.now(); }
 };
 $("playHint").onclick = async () => {
   if (!PLAY.on || PLAY.thinking || !S.engine) return;
@@ -3329,7 +3572,7 @@ async function run(){
   catch(e){ status(e.message, null, true); return; }
   if (inp.color === "white" || inp.color === "black") $("side").value = inp.color[0];
   S.side = $("side").value; S.flip = false; S.aiTexts = null; S.threat = []; aiCtl?.abort();
-  S.headers = game.headers || {}; EXPLAIN = null; exitRetry(true); S.useEngine = new Set();
+  S.headers = game.headers || {}; EXPLAIN = null; exitRetry(true); S.useEngine = new Set(); S.freeplay = false;
   S.plies = game.hist; S.fens = [game.hist[0].before, ...game.hist.map(m=>m.after)];
   S.evals = []; S.info = []; S.cls = []; S.texts = []; S.analysed = false; S.cur = 0;
   if (PLAY.on) exitPlay();
@@ -3429,7 +3672,7 @@ $("diagCopy").onclick = async () => {
   catch{ const r = document.createRange(); r.selectNodeContents($("diagLog")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); $("diagMsg").textContent = "Selecionei o texto: use Ctrl+C."; }
 };
 $("src").value = "";
-window.__S = S; window.__N = Neural; window.__T = TEL; window.__D = { neuralParts, currentText, toSpeech, Voice, PREP, SND }; // depuração
+window.__S = S; window.__N = Neural; window.__T = TEL; window.__P = { PLAY, playUci, newGame, MAIA, playPGN, get NG(){ return NG; } }; window.__D = { neuralParts, currentText, toSpeech, Voice, PREP, SND }; // depuração
 /* abre em branco: só pré-carrega o motor para a primeira análise sair rápida */
 function engineReady(){ return S.engine ? Promise.resolve(S.engine) : (S.engineP ||= startEngine().then(e => (S.engine = e)).catch(err => { S.engineP = null; throw err; })); }
 preflight().finally(() => engineReady()
@@ -3438,5 +3681,38 @@ preflight().finally(() => engineReady()
 
 try{ apiKeyUI(); }catch{}
 </script>
+<dialog class="ng" id="ngDlg">
+  <form method="dialog" id="ngForm">
+    <h2>Jogar contra o computador <button type="button" class="icon" id="ngClose" aria-label="Fechar">✕</button></h2>
+    <section><h3>Adversário</h3><div class="bots" id="ngBots"></div></section>
+    <section class="ngrow">
+      <div><h3>Tipo de adversário</h3><div class="chips" id="ngKind">
+        <button type="button" data-v="maia">Humano (Maia 3)</button><button type="button" data-v="sf">Motor (Stockfish)</button></div>
+        <p class="ngnote" id="ngKindNote"></p></div>
+      <div><h3>Força</h3><div class="ngelo"><input type="range" id="ngElo"><output id="ngEloOut"></output></div>
+        <p class="ngnote" id="ngEloNote"></p></div>
+    </section>
+    <section class="ngrow">
+      <div><h3>Suas peças</h3><div class="chips" id="ngColor"><button type="button" data-v="w">♔ Brancas</button><button type="button" data-v="r">🎲 Sorteio</button><button type="button" data-v="b">♚ Pretas</button></div></div>
+      <div><h3>Relógio</h3><div class="chips" id="ngTc"></div>
+        <div class="ngelo" id="ngTcCustom" hidden><input type="number" id="ngMin" min="0.5" max="180" step="0.5" value="10" style="width:80px;flex:none"> min + <input type="number" id="ngInc" min="0" max="60" value="5" style="width:70px;flex:none"> s por lance</div></div>
+    </section>
+    <section class="ngrow">
+      <div><h3>Começar de</h3><div class="chips" id="ngStart"><button type="button" data-v="init">Posição inicial</button><button type="button" data-v="board">Posição do tabuleiro</button><button type="button" data-v="fen">FEN…</button></div>
+        <input type="text" id="ngFen" placeholder="Cole o FEN da posição" hidden style="width:100%;margin-top:8px;font-family:var(--font-mono);font-size:.78rem"></div>
+      <div id="ngStyleBox"><h3>Jeito de jogar</h3><div class="chips" id="ngStyle"><button type="button" data-v="nat">Natural</button><button type="button" data-v="top">Previsível</button></div>
+        <p class="ngnote" id="ngStyleNote"></p></div>
+    </section>
+    <section><h3>Ajudas</h3><div class="ngchecks">
+      <label><input type="checkbox" id="ngCoach"> Professor comenta meus lances</label>
+      <label><input type="checkbox" id="ngAuto"> Mostrar o melhor lance depois de cada lance dele</label>
+      <label><input type="checkbox" id="ngHints"> Botão de dica</label>
+      <label><input type="checkbox" id="ngUndo"> Pode voltar lance</label>
+      <label><input type="checkbox" id="ngVoice"> Professor fala em voz</label>
+      <label><input type="checkbox" id="ngFast"> Computador joga na hora (sem pausa)</label>
+    </div></section>
+    <div class="ngfoot"><span class="ngnote" id="ngMsg"></span><button type="submit" class="primary" id="ngGo">Jogar</button></div>
+  </form>
+</dialog>
 </body>
 </html>
