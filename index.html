@@ -621,7 +621,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
     <p class="note" id="gpuInfo">Placa de vídeo: verificando…</p>
     <p class="note">Atalhos: ← → navegam · espaço liga a aula · Esc fecha a prévia. Botão direito desenha setas.</p>
     <details class="diag" id="diag"><summary>Diagnóstico</summary><div class="diagbar"><button type="button" id="diagCopy">Copiar</button><span id="diagMsg"></span></div><pre id="diagLog"></pre></details>
-    <p class="note credit">v<span id="ver">6.1</span> · Stockfish 18/19 · tabuleiro chessground (lichess) · voz Kokoro-82M / Piper · todos GPL/Apache/MIT</p>
+    <p class="note credit">v<span id="ver">6.2</span> · Stockfish 18/19 · tabuleiro chessground (lichess) · voz Kokoro-82M / Piper · todos GPL/Apache/MIT</p>
   </section>
 
   <div class="main">
@@ -696,7 +696,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
 <script type="module">
 import { Chess } from "./chess.js";
 import { Chessground } from "./chessground.min.js";
-const VERSION = "v6.1";
+const VERSION = "v6.2";
 console.log(`Professor de Xadrez ${VERSION} iniciado`);
 
 const $ = id => document.getElementById(id);
@@ -1985,7 +1985,7 @@ function say(t){ if (!t) return; SAYQ.push(t); if (!SAYBUSY) sayNext(); }
 function sayNext(){ const t = SAYQ.shift(); if (!t){ SAYBUSY = false; return; } SAYBUSY = true; Voice.speak(toSpeech(t), () => { SAYBUSY = false; sayNext(); }); }
 
 const QUIET = "Lance tranquilo, nada de importante aqui.";
-const rawText = i => (S.aiTexts && String(S.aiTexts[i] || "").trim()) ? S.aiTexts[i] : S.texts[i];   // vazio do Claude cai no comentário automático
+const rawText = i => (S.aiTexts && !S.useEngine?.has(i) && String(S.aiTexts[i] || "").trim()) ? S.aiTexts[i] : S.texts[i];   // vazio do Claude cai no comentário automático
 const isQuiet = i => !String(rawText(i) || "").trim();
 const currentText = i => isQuiet(i) ? QUIET : rawText(i);
 
@@ -2308,18 +2308,25 @@ const NT = self.crossOriginIsolated ? Math.max(1, Math.min(4, Math.floor(HW / PO
    só frases longas (>150) quebram na vírgula, e pedaços minúsculos grudam no anterior */
 function neuralParts(text){
   const sents = (text.match(/[^.!?]+[.!?]*/g) || [text]).map(x => x.trim()).filter(Boolean), out = [];
-  for (let t of sents){
+  /* o 1º pedaço da fala é curto (até ~70 letras): ele é o que a aula espera para começar a falar.
+     Medido no seu PC de 12 núcleos (v5.8): cada cópia leva ~4 s para gerar 1 s de fala, então
+     um pedaço de 150 letras (~10 s de fala) segurava a aula ~40 s; um de 70 segura ~18 s ou menos. */
+  sents.forEach((t, si) => {
     const pcs = [];
-    while (t.length > 150){
-      let k = t.lastIndexOf(",", 150); if (k < 40) k = t.lastIndexOf(" ", 150);
-      const cut = k > 40 ? k + 1 : 150; pcs.push(t.slice(0, cut).trim()); t = t.slice(cut).trim();
+    if (si === 0 && t.length > 90){
+      let k = t.lastIndexOf(",", 70); if (k < 30) k = t.lastIndexOf(" ", 70);
+      if (k >= 30){ pcs.push(t.slice(0, k + 1).trim()); t = t.slice(k + 1).trim(); }
+    }
+    while (t.length > 120){
+      let k = t.lastIndexOf(",", 120); if (k < 40) k = t.lastIndexOf(" ", 120);
+      const cut = k > 40 ? k + 1 : 120; pcs.push(t.slice(0, cut).trim()); t = t.slice(cut).trim();
     }
     if (t) pcs.push(t);
     for (const pc of pcs){
       const last = out[out.length - 1];
-      if (last && (pc.length < 25 || last.length < 25) && last.length + pc.length < 170) out[out.length - 1] = last + " " + pc; else out.push(pc);
+      if (last && (pc.length < 25 || last.length < 25) && last.length + pc.length < (out.length === 1 ? 90 : 150)) out[out.length - 1] = last + " " + pc; else out.push(pc);
     }
-  }
+  });
   return out;
 }
 const NEURAL_VOICES = { dora: "Dora · feminina (principal)" };
@@ -2485,7 +2492,7 @@ const Neural = {
             if (i === parts.length) return ok();
             const pend = parts.slice(i).filter((_, k) => !got[i + k]);
             const rem = pend.reduce((a, t) => a + est(t), 0) * (this.rtfMed() || 3) / Math.max(1, Math.min(this.nReady(), pend.length));
-            if (i > next && pre >= rem * 1.25) return ok();
+            if (i > next) return ok();   /* antes esperava juntar áudio para o resto todo (pre >= rem*1,25): no seu PC isso deu esperas de 49 s, 78 s e 116 s antes da 1ª palavra */
             setTimeout(tick, 100);
           };
           tick();
@@ -2720,6 +2727,13 @@ document.querySelectorAll(".rates button").forEach(b => b.onclick = () => { setR
 function speakCurrent(onEnd){
   if (!onMain()){ onEnd && onEnd(); return; }
   const i = S.cur - 1;
+  if (i >= 0 && S.aiTexts && String(S.aiTexts[i] || "").trim() && !S.useEngine?.has(i) && VSEL.startsWith("n:") && Neural.state === "ready" && S.texts[i]){
+    const first = t => neuralParts(toSpeech(t))[0];
+    if (!Neural.isDone(first(S.aiTexts[i]), Voice.rate) && Neural.isDone(first(S.texts[i]), Voice.rate)){
+      (S.useEngine ||= new Set()).add(i);     // o áudio do comentário automático já está pronto: fala ele agora
+      $("ltext").innerHTML = toHTML(currentText(i)); dlog(`lance ${i + 1}: comentário do Claude sem áudio ainda → falei o automático, que já estava pronto`);
+    }
+  }
   const txt = i < 0 ? introNow() : currentText(i);
   Voice.speak(toSpeech(txt), onEnd);
 }
@@ -3208,7 +3222,7 @@ async function run(){
   catch(e){ status(e.message, null, true); return; }
   if (inp.color === "white" || inp.color === "black") $("side").value = inp.color[0];
   S.side = $("side").value; S.flip = false; S.aiTexts = null; S.threat = []; aiCtl?.abort();
-  S.headers = game.headers || {}; EXPLAIN = null; exitRetry(true);
+  S.headers = game.headers || {}; EXPLAIN = null; exitRetry(true); S.useEngine = new Set();
   S.plies = game.hist; S.fens = [game.hist[0].before, ...game.hist.map(m=>m.after)];
   S.evals = []; S.info = []; S.cls = []; S.texts = []; S.analysed = false; S.cur = 0;
   if (PLAY.on) exitPlay();
@@ -3305,7 +3319,7 @@ $("diagCopy").onclick = async () => {
   catch{ const r = document.createRange(); r.selectNodeContents($("diagLog")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); $("diagMsg").textContent = "Selecionei o texto: use Ctrl+C."; }
 };
 $("src").value = "";
-window.__S = S; window.__N = Neural; window.__D = { neuralParts, currentText, toSpeech, Voice, PREP }; // depuração
+window.__S = S; window.__N = Neural; window.__T = TEL; window.__D = { neuralParts, currentText, toSpeech, Voice, PREP }; // depuração
 /* abre em branco: só pré-carrega o motor para a primeira análise sair rápida */
 function engineReady(){ return S.engine ? Promise.resolve(S.engine) : (S.engineP ||= startEngine().then(e => (S.engine = e)).catch(err => { S.engineP = null; throw err; })); }
 preflight().finally(() => engineReady()
