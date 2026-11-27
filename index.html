@@ -659,7 +659,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
     <p class="note" id="gpuInfo">Placa de vídeo: verificando…</p>
     <p class="note">Atalhos: ← → navegam · espaço liga a aula · Esc fecha a prévia. Botão direito desenha setas.</p>
     <details class="diag" id="diag"><summary>Diagnóstico</summary><div class="diagbar"><button type="button" id="diagCopy">Copiar</button><span id="diagMsg"></span></div><pre id="diagLog"></pre></details>
-    <p class="note credit">v<span id="ver">6.6</span> · Stockfish 18/19 · tabuleiro chessground (lichess) · adversário humano Maia 3 (CSSLab) · voz Kokoro-82M · sons do lichess · todos GPL/AGPL/Apache/MIT</p>
+    <p class="note credit">v<span id="ver">6.7</span> · Stockfish 18/19 · tabuleiro chessground (lichess) · adversário humano Maia 3 (CSSLab) · voz Kokoro-82M · sons do lichess · todos GPL/AGPL/Apache/MIT</p>
   </section>
 
   <div class="main">
@@ -673,12 +673,12 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
       <div class="playbar" id="playBar" hidden>
         <span id="playMsg"></span>
         <label class="chk"><input type="checkbox" id="playSpeak" checked> Voz</label>
-        <span class="playbtns"><button id="playHint" type="button">💡 Dica</button><button id="playUndo" type="button">↶</button><button id="playResign" type="button">🏳 Desistir</button><button id="playReview" type="button" hidden>Analisar partida</button><button id="playNew" type="button" hidden>Nova partida</button><button id="playExit" type="button">Sair</button></span>
+        <span class="playbtns"><button id="playHint" type="button">💡 Dica</button><button id="playUndo" type="button">↶</button><button id="playResign" type="button">🏳 Desistir</button><button id="playReview" type="button" hidden>Analisar partida</button><button id="playRematch" type="button" hidden>↻ Revanche</button><button id="playNew" type="button" hidden>Nova partida</button><button id="playExit" type="button">Sair</button></span>
       </div>
     </div>
 
     <aside class="panel"><div class="pin">
-      <div class="phead"><span class="ptitle"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#81b64c"/><path d="M12 5.2l1.95 4.1 4.45.55-3.27 3.08.83 4.42L12 15.2l-3.96 2.15.83-4.42L5.6 9.85l4.45-.55z" fill="#fff"/></svg>Revisão da partida</span><span class="chips" id="summary"></span><button type="button" class="hbtn" id="rateBtn" title="Velocidade da voz">1x</button><button type="button" class="hbtn" id="muteBtn" title="Ligar/desligar a voz" aria-pressed="false">🔊</button><button type="button" class="hbtn" id="flip" title="Virar tabuleiro" aria-label="Virar tabuleiro">⇅</button></div>
+      <div class="phead"><span class="ptitle"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#81b64c"/><path d="M12 5.2l1.95 4.1 4.45.55-3.27 3.08.83 4.42L12 15.2l-3.96 2.15.83-4.42L5.6 9.85l4.45-.55z" fill="#fff"/></svg><span id="ptitleTxt">Revisão da partida</span></span><span class="chips" id="summary"></span><button type="button" class="hbtn" id="rateBtn" title="Velocidade da voz">1x</button><button type="button" class="hbtn" id="muteBtn" title="Ligar/desligar a voz" aria-pressed="false">🔊</button><button type="button" class="hbtn" id="flip" title="Virar tabuleiro" aria-label="Virar tabuleiro">⇅</button></div>
       <div class="coach">
         <div class="avatar" id="avatar" aria-hidden="true"><svg viewBox="0 0 64 64"><rect width="64" height="64" fill="#4a6b33"/><circle cx="32" cy="38" r="16" fill="#f1c9a5"/><path d="M16 40c1 9 7 15 16 15s15-6 16-15c-3 5-9 7-16 7s-13-2-16-7z" fill="#e8e4dc"/><path d="M25 45c4 2 10 2 14 0" stroke="#b07c5b" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="26" cy="36" r="4.6" fill="#fff" fill-opacity=".35" stroke="#2b2a27" stroke-width="2"/><circle cx="38" cy="36" r="4.6" fill="#fff" fill-opacity=".35" stroke="#2b2a27" stroke-width="2"/><path d="M30.6 36h2.8" stroke="#2b2a27" stroke-width="2"/><circle cx="26" cy="36.4" r="1.4" fill="#2b2a27"/><circle cx="38" cy="36.4" r="1.4" fill="#2b2a27"/><path d="M11 22l21-9 21 9-21 9z" fill="#1d1c1a"/><path d="M21 26v5.5c7 3.5 15 3.5 22 0V26l-11 4.7z" fill="#2b2a27"/><path d="M50 23.2v9.5" stroke="#f0c15c" stroke-width="2"/><circle cx="50" cy="34" r="2.2" fill="#f0c15c"/></svg></div>
         <div class="bubble" id="bubble" aria-live="polite">
@@ -734,7 +734,7 @@ cg-board square.k-forced{background-color:rgba(151,160,168,.55)}
 <script type="module">
 import { Chess } from "./chess.js";
 import { Chessground } from "./chessground.min.js";
-const VERSION = "v6.6";
+const VERSION = "v6.7";
 console.log(`Professor de Xadrez ${VERSION} iniciado`);
 
 const $ = id => document.getElementById(id);
@@ -2110,6 +2110,22 @@ const currentText = i => isQuiet(i) ? QUIET : rawText(i);
 function renderMoves(){
   let h = "";
   const N = S.plies.length;
+  if (S.freeplay && !N && S.mainNodes?.[0]){        // partida contra o computador: lista normal, sem parênteses
+    let n = S.mainNodes[0], row = "";
+    const tdOf = x => `<td class="m vm" data-node="${x.id}"><span class="mi"><span>${figSan(x.san)}</span></span></td>`;
+    if (n.children.length && n.fen.split(" ")[1] === "b") row = `<tr><td class="n">${n.fen.split(" ")[5]}.</td><td></td>`;
+    while (n.children.length){
+      const x = n.children[0], [, side, , , , num] = n.fen.split(" ");
+      if (side === "w"){ if (row) h += row + "<td></td></tr>"; row = `<tr><td class="n">${num}.</td>${tdOf(x)}`; }
+      else { h += (row || `<tr><td class="n">${num}.</td><td></td>`) + tdOf(x) + "</tr>"; row = ""; }
+      n = x;
+    }
+    if (row) h += row + "<td></td></tr>";
+    $("moves").innerHTML = h;
+    document.querySelectorAll("#moves .vm").forEach(sp => sp.onclick = () => { const x = NODES.get(+sp.dataset.node); if (x) goNode(x, "nav"); });
+    if (S.node) markCurrentInList();
+    return;
+  }
   for (let i=0;i<N;i+=2){
     h += `<tr><td class="n">${i/2+1}.</td>${cell(i)}${S.plies[i+1] ? cell(i+1) : "<td></td>"}</tr>`;
     for (const k of [i, i+1]){                       // variantes alternativas ao lance k+1
@@ -2162,6 +2178,7 @@ function capturedHTML(fen, c){
   return figs || adv > 0 ? `<span class="capt">${figs}${adv > 0 ? `<em>+${adv}</em>` : ""}</span>` : "";
 }
 function renderPlayers(){
+  $("ptitleTxt").textContent = PLAY.on && PLAY.cfg ? `Partida contra ${PLAY.cfg.name}` : "Revisão da partida";
   const flipped = orientation() === "black";
   const me = PLAY.on ? PLAY.you : S.side, H = S.headers || {};
   const name = c => { const n = H[c === "w" ? "White" : "Black"]; return n && n !== "?" ? n : (c === "w" ? "Brancas" : "Pretas"); };
@@ -2457,7 +2474,7 @@ function resetBot(){ try{ PLAY.bot?.kill("nova partida"); }catch{} PLAY.bot = nu
 function playButtons(){
   const c = PLAY.cfg, n = PLAY.nodes ? PLAY.nodes.size - 1 : 0;
   $("playHint").hidden = !!(c && !c.hints) || !!PLAY.over; $("playUndo").hidden = !!(c && !c.undo) || !!PLAY.over;
-  $("playResign").hidden = !c || !!PLAY.over; $("playNew").hidden = !c || !PLAY.over;
+  $("playResign").hidden = !c || !!PLAY.over; $("playNew").hidden = !c || !PLAY.over; $("playRematch").hidden = !c || !PLAY.over;
   $("playReview").hidden = !c || n < 2; $("playExit").textContent = c && !PLAY.over ? "Sair" : "Fechar";
 }
 /* ---------- relógio ---------- */
@@ -2488,10 +2505,10 @@ function clockMoved(mover){
 setInterval(clockTick, 100);
 
 /* nova partida do zero (ou de uma posição) contra o adversário escolhido no diálogo */
-function newGame(fen0){
+function newGame(fen0, colorOverride){
   const fen = fen0 || new Chess().fen();
   const B = BOTS.find(x => x.id === NG.bot);
-  const you = NG.color === "r" ? (Math.random() < 0.5 ? "w" : "b") : NG.color;
+  const you = colorOverride || (NG.color === "r" ? (Math.random() < 0.5 ? "w" : "b") : NG.color);
   const name = B ? B.name : NG.kind === "maia" ? `Maia ${NG.elo}` : NG.elo ? `Robô ${NG.elo}` : "Stockfish";
   const [mn, inc] = NG.tc === "c" ? [NG.min, NG.inc] : NG.tc.split("+").map(Number);
   S.runId++; if (S.lesson) stopLesson(); Voice.stop(); exitRetry(true); aiCtl?.abort(); if (PLAY.on) exitPlay(); EXPLAIN = null;
@@ -2582,6 +2599,7 @@ function exitPlay(msg){
 $("playExit").onclick = () => exitPlay(PLAY.cfg ? "" : "Partida contra o computador encerrada. Os lances ficaram salvos como variante.");
 $("playResign").onclick = () => { if (!PLAY.on || PLAY.over) return; PLAY.over = `Você desistiu. ${botName()} venceu.`; clockStop(); sound("end"); setPlayMsg(); drawBoard(); renderLesson(); renderPlayers(); };
 $("playNew").onclick = () => ngOpen();
+$("playRematch").onclick = () => { if (!PLAY.cfg) return; const fen = PLAY.start.fen, start = new Chess().fen() === fen ? null : fen; newGame(start, PLAY.you === "w" ? "b" : "w"); };   // revanche: mesmo adversário, cores trocadas
 $("playReview").onclick = () => { if (!PLAY.on) return; const pgn = playPGN(), you = PLAY.you; exitPlay(); S.freeplay = false; $("src").value = pgn; $("side").value = you; run(); };
 $("playBtn").onclick = () => ngOpen();
 ngWire();
